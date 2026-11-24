@@ -111,7 +111,7 @@ class TemplatesPage(Page):
             + f" · max height {t.max_height_mm:g} mm · {t.font['names'][0]} {t.font['tick']}–{t.font['label']} pt"
             + f" · panel label '{t.label(0)}' · font on this computer: {t.resolved_font()}")
         try:
-            self.yaml.setPlainText(Path(t.path).read_text())
+            self.yaml.setPlainText(Path(t.path).read_text(encoding="utf-8"))
         except OSError:
             self.yaml.setPlainText("")
         self.yaml.setReadOnly(not mine)
@@ -152,7 +152,7 @@ class TemplatesPage(Page):
 
     def import_path(self, path: str):
         try:
-            y = TIO.validate(Path(path).read_text())
+            y = TIO.validate(Path(path).read_text(encoding="utf-8"))
         except (OSError, ValueError) as exc:
             self.error("Import", f"{Path(path).name} is not a usable template.\n\n{exc}")
             return

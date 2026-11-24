@@ -19,8 +19,6 @@ from __future__ import annotations
 
 import argparse
 import json
-
-import numpy as np
 import os
 import sys
 from pathlib import Path
@@ -331,6 +329,7 @@ def fit_inputs(a):
 
 def load_fit_series(a):
     """[(name, x, y, sigma or None)] for ``fit``."""
+    import numpy as np
     from .plot.engine import read_table
     from .analysis import load_series
     out = []
@@ -715,6 +714,12 @@ def _check_style(ap, a):
 
 
 def main(argv=None):
+    for stream in (sys.stdout, sys.stderr):      # Windows code pages cannot print χ², Å, τ … – never crash on it
+        if stream is not None and hasattr(stream, "reconfigure"):
+            try:
+                stream.reconfigure(errors="replace")
+            except (ValueError, OSError):
+                pass
     ap = build_parser()
     a = ap.parse_args(argv)
     _check_colors(ap, a)

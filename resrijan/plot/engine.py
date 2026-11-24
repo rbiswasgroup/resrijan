@@ -34,7 +34,7 @@ def read_table(path: str, delimiter: Optional[str] = None) -> Dict[str, np.ndarr
     Long-format files with a 'series' column are kept as strings in that column.
     Lines starting with '#' are comments.
     """
-    text = Path(path).read_text(errors="replace")
+    text = Path(path).read_text(encoding="utf-8", errors="replace")
     lines = [l for l in text.splitlines() if l.strip() and not l.lstrip().startswith("#")]
     if not lines:
         raise ValueError(f"{path}: empty table")
@@ -71,7 +71,7 @@ def read_grid(path: str):
     if str(path).endswith(".npz"):
         d = np.load(path)
         return d["x"], d["y"], d["z"]
-    arr = np.genfromtxt(path, delimiter="," if open(path).readline().count(",") else None, comments="#")
+    arr = np.genfromtxt(path, delimiter="," if open(path, encoding="utf-8", errors="replace").readline().count(",") else None, comments="#")
     x = arr[0, 1:]
     y = arr[1:, 0]
     z = arr[1:, 1:]
@@ -760,18 +760,18 @@ def save(fig, path: str, formats: Sequence[str] = ("pdf", "svg", "png"), dpi: Op
 
 def _svg_fonts(path: str, tpl: T.Template):
     """Write the journal's preferred font stack into the SVG so Illustrator/Inkscape pick Arial etc."""
-    s = Path(path).read_text()
+    s = Path(path).read_text(encoding="utf-8")
     stack = ", ".join(f"'{n}'" if " " in n else n for n in tpl.font["names"])
     stack += ", sans-serif" if tpl.font["family"] == "sans-serif" else ", serif"
     s = re.sub(r"font-family:[^;\"]+", f"font-family:{stack}", s)
     s = re.sub(r'font-family="[^"]+"', f'font-family="{stack}"', s)
-    Path(path).write_text(s)
+    Path(path).write_text(s, encoding="utf-8")
 
 
 def compose(spec_path: str, out: Optional[str] = None, formats=None) -> List[str]:
     """Build a figure from a YAML spec file (see examples/)."""
     import yaml
-    spec = yaml.safe_load(open(spec_path))
+    spec = yaml.safe_load(open(spec_path, encoding="utf-8"))
     base = os.path.dirname(os.path.abspath(spec_path))
     figspec = spec.get("figure", {})
     fig, axes, lay = figure(spec["panels"], template=figspec.get("template", "natchem"),

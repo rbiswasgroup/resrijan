@@ -268,6 +268,6 @@ def html(panels: List, path: str, combined=None, template="natchem") -> str:
                 links.append(f"<a href='{_rel(f, path)}'>{os.path.basename(f)}</a>")
         out.append("<div class='files'>" + "".join(links) + "</div></section>")
     out.append("</main></body></html>")
-    with open(path, "w") as fh:
+    with open(path, "w", encoding="utf-8") as fh:
         fh.write("\n".join(out))
     return path

@@ -30,6 +30,7 @@
 
 **Other**
 * GUI: Plot, Analyze and Fit share the data file – open it once and it follows you between the pages; the Digitize results send a panel's data (edited, if corrected) to Plot, Analyze or Fit with one click.
+* Windows portability: every file is read and written as UTF-8, external programs (Tesseract, Ghostscript) run without console windows, user templates live in `%APPDATA%\resrijan`, and printing never fails on characters the console code page lacks. `import resrijan` no longer loads the whole pipeline.
 * `resrijan doctor` checks the installation (libraries, OCR, Ghostscript, a test window). On Windows the GUI starts through a launcher that logs to `%LOCALAPPDATA%\ReSrijan\logs\gui.log` and shows a message instead of closing silently when something is wrong.
 * Data files with a `kind` column (`markers`/`line`) are plotted with markers or lines accordingly.
 * Tutorials 19 (analysis, deconvolution) and 20 (curve fitting), examples `15_analysis` and `16_curve_fit`; tutorials 12 and 18 extended.

@@ -1169,7 +1169,7 @@ def write_outputs(panels: List[Panel], out_dir: str, template: str = "natchem",
                     lo = s.yerr_lo[i] if s.yerr_lo is not None else np.nan
                     hi = s.yerr_hi[i] if s.yerr_hi is not None else np.nan
                     rows.append(f"{_csvq(s.name)},{s.x[i]:.10g},{s.y[i]:.10g},{lo:.6g},{hi:.6g},{s.kind},{s.source}")
-            Path(base + "_data.csv").write_text("\n".join(rows) + "\n")
+            Path(base + "_data.csv").write_text("\n".join(rows) + "\n", encoding="utf-8")
             p.files["data"] = base + "_data.csv"
             meta["series"] = [{"name": s.name, "kind": s.kind, "n": int(len(s.x)), "color": s.color_rgb,
                                "dashed": s.dashed, "source": s.source,
@@ -1181,7 +1181,7 @@ def write_outputs(panels: List[Panel], out_dir: str, template: str = "natchem",
                 em = "" if b.err_minus is None else f"{b.err_minus:.6g}"
                 rows.append(f"{_csvq(b.category)},{b.value:.8g},{ep},{em},{'' if b.annotated is None else f'{b.annotated:g}'},"
                             f"{b.x0:.3f},{b.x1:.3f},{b.top:.3f},#{b.color[0]:02x}{b.color[1]:02x}{b.color[2]:02x}")
-            Path(base + "_bars.csv").write_text("\n".join(rows) + "\n")
+            Path(base + "_bars.csv").write_text("\n".join(rows) + "\n", encoding="utf-8")
             p.files["data"] = base + "_bars.csv"
             meta["bars"] = [{"category": b.category, "value": b.value, "annotated": b.annotated,
                              "color": b.color, "slices": b.n_parts} for b in p.bars]
@@ -1199,7 +1199,7 @@ def write_outputs(panels: List[Panel], out_dir: str, template: str = "natchem",
             meta["colorbar"] = {"discrete": p.colorbar.discrete, "calibration": p.colorbar.cal.as_dict(),
                                 "n_bands": len(p.colorbar.bands)}
             if p.contours:
-                with open(base + "_contours.csv", "w") as fh:
+                with open(base + "_contours.csv", "w", encoding="utf-8") as fh:
                     fh.write("contour,x,y\n")
                     for k, c in enumerate(p.contours):
                         xs = p.box.xcal.to_data(c[:, 0]); ys = p.box.ycal.to_data(c[:, 1])
@@ -1207,7 +1207,7 @@ def write_outputs(panels: List[Panel], out_dir: str, template: str = "natchem",
                             fh.write(f"{k},{a:.8g},{b:.8g}\n")
                 p.files["contours"] = base + "_contours.csv"
         if p.kind == "contour" and p.contours and p.grid is None:
-            with open(base + "_contours.csv", "w") as fh:
+            with open(base + "_contours.csv", "w", encoding="utf-8") as fh:
                 fh.write("contour,x,y,color\n")
                 for k, (c, st) in enumerate(zip(p.contours, p.contour_style)):
                     xs = p.box.xcal.to_data(c[:, 0]); ys = p.box.ycal.to_data(c[:, 1])
@@ -1236,13 +1236,13 @@ def write_outputs(panels: List[Panel], out_dir: str, template: str = "natchem",
             if r.particles:
                 pr = r.particles
                 meta["particles"] = pr["stats"]
-                with open(base + "_particles.csv", "w") as fh:
+                with open(base + "_particles.csv", "w", encoding="utf-8") as fh:
                     fh.write("id,cx_px,cy_px,area_px,eq_diam_px,eq_diam_nm,eccentricity,touches_edge\n")
                     for k, q in enumerate(pr["particles"]):
                         fh.write(f"{k},{q['cx_px']:.2f},{q['cy_px']:.2f},{q['area_px']},{q['eq_diam_px']:.3f},"
                                  f"{q['eq_diam_nm'] if q['eq_diam_nm'] is not None else ''},{q['eccentricity']:.3f},{int(q['edge'])}\n")
                 p.files["data"] = base + "_particles.csv"
-        Path(base + "_meta.json").write_text(json.dumps(meta, indent=1, default=_json))
+        Path(base + "_meta.json").write_text(json.dumps(meta, indent=1, default=_json), encoding="utf-8")
         p.files["meta"] = base + "_meta.json"
         # overlay for visual verification
         try:
@@ -1318,13 +1318,13 @@ def _write_frame(p: Panel, base: str, meta: dict):
         v, u = imagefig.to_unit(L * fr.nm_per_px) if fr.nm_per_px else (L, "px")
         rows.append(f"line_pair_separation,{pr['color']},,,,,{L:.3f},{v:.6g},{u},,0,{pr['lines'][0].source}")
     if len(rows) > 1:
-        Path(base + "_annotations.csv").write_text("\n".join(rows) + "\n")
+        Path(base + "_annotations.csv").write_text("\n".join(rows) + "\n", encoding="utf-8")
         p.files["annotations"] = base + "_annotations.csv"
     if fr.lattice:
         rows = ["rank,period_px,d_nm,angle_deg,snr"]
         for k, pk in enumerate(fr.lattice, 1):
             rows.append(f"{k},{pk['period_px']:.4f},{pk.get('d_nm', float('nan')):.5g},{pk['angle_deg']:.2f},{pk['snr']:.1f}")
-        Path(base + "_lattice.csv").write_text("\n".join(rows) + "\n")
+        Path(base + "_lattice.csv").write_text("\n".join(rows) + "\n", encoding="utf-8")
         p.files["data"] = base + "_lattice.csv"
 
 

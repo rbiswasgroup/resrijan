@@ -64,5 +64,5 @@ def test_multipanel_reading_order(tmp_path):
     assert [p.kind for p in ps] == ["line", "line", "scatter", "line"]
     res = write_outputs(ps, str(tmp_path), template="natchem", formats=["svg"], stem="mp")
     assert Path(res["report"]).exists() and res["combined"]
-    svg = Path(res["combined"][0]).read_text()
+    svg = Path(res["combined"][0]).read_text(encoding="utf-8")
     assert "<text" in svg            # editable text

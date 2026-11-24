@@ -401,7 +401,7 @@ class CsvTable(QTableWidget):
         self.setColumnCount(0)
         if not path or not Path(path).exists():
             return
-        with open(path, newline="") as fh:
+        with open(path, newline="", encoding="utf-8", errors="replace") as fh:
             rows = list(csv.reader(fh))
         if not rows:
             return
@@ -442,7 +442,12 @@ class CommandBar(QFrame):
         self.text = ""
 
     def set_argv(self, argv: Sequence[str]):
-        self.text = "resrijan " + " ".join(shlex.quote(a) for a in argv)
+        from .._platform import WINDOWS
+        if WINDOWS:                    # quoting for cmd.exe / PowerShell
+            import subprocess
+            self.text = "resrijan " + subprocess.list2cmdline(list(argv))
+        else:
+            self.text = "resrijan " + " ".join(shlex.quote(a) for a in argv)
         self.label.setText(self.text)
 
 

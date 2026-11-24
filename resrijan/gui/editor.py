@@ -81,7 +81,7 @@ class EditData:
             name = f'"{s.name}"' if ("," in s.name or '"' in s.name) else s.name
             for i in range(len(s.x)):
                 rows.append(f"{name},{s.x[i]:.10g},{s.y[i]:.10g},{s.lo[i]:.6g},{s.hi[i]:.6g},{s.kind},{s.source}")
-        Path(path).write_text("\n".join(rows) + "\n")
+        Path(path).write_text("\n".join(rows) + "\n", encoding="utf-8")
 
     # operations (each returns a short description for the log) -------------
     def names(self) -> List[str]:
@@ -614,7 +614,7 @@ class DataEditor(QDialog):
             log["background"] = {"file": Path(png).name, "extent": self.background["extent"],
                                  "xscale": self.background.get("xscale", "linear"),
                                  "yscale": self.background.get("yscale", "linear")}
-        Path(out[:-4] + "_edits.json").write_text(json.dumps(log, indent=1))
+        Path(out[:-4] + "_edits.json").write_text(json.dumps(log, indent=1), encoding="utf-8")
         files = [out]
         if self.spec is not None:
             try:
@@ -638,7 +638,7 @@ def _load_background(edited_csv: str) -> Optional[dict]:
     if not j.exists():
         return None
     try:
-        b = json.loads(j.read_text()).get("background")
+        b = json.loads(j.read_text(encoding="utf-8")).get("background")
         if not b:
             return None
         from PIL import Image

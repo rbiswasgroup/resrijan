@@ -36,7 +36,7 @@ def test_lattice_period_precision():
 
 @pytest.mark.skipif(not (EX / "12_hrtem_insets" / "hrtem_insets.pdf").exists(), reason="example not generated")
 def test_hrtem_insets_example():
-    truth = json.loads((EX / "12_hrtem_insets" / "truth.json").read_text())
+    truth = json.loads((EX / "12_hrtem_insets" / "truth.json").read_text(encoding="utf-8"))
     panels = digitize(str(EX / "12_hrtem_insets" / "hrtem_insets.pdf"))
     main = [p for p in panels if p.frame is not None and p.frame.parent is None]
     assert len(main) == 1
@@ -56,7 +56,7 @@ def test_hrtem_insets_example():
 
 @pytest.mark.skipif(not (EX / "13_timelapse" / "timelapse.svg").exists(), reason="example not generated")
 def test_timelapse_example():
-    truth = json.loads((EX / "13_timelapse" / "truth.json").read_text())
+    truth = json.loads((EX / "13_timelapse" / "truth.json").read_text(encoding="utf-8"))
     panels = digitize(str(EX / "13_timelapse" / "timelapse.svg"))
     frames = [p for p in panels if p.frame is not None]
     assert [p.frame.title for p in frames] == ["0 min", "10 min", "20 min", "30 min", "40 min"]

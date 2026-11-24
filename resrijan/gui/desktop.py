@@ -34,7 +34,7 @@ def install_entry() -> Path:
         "Terminal=false\n"
         "Categories=Science;Education;Graphics;\n"
         f"MimeType={';'.join(MIME)};\n"
-        "StartupWMClass=resrijan\n")
+        "StartupWMClass=resrijan\n", encoding="utf-8")
     for tool in (["update-desktop-database", str(app_dir)], ["gtk-update-icon-cache", "-f", "-t", str(share / "icons" / "hicolor")]):
         if shutil.which(tool[0]):
             subprocess.run(tool, capture_output=True)

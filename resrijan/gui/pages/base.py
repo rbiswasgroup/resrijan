@@ -102,6 +102,10 @@ class Page(QWidget):
         QMessageBox.information(self, title, msg)
 
     def command_text(self, argv: Sequence[str]) -> str:
+        from ..._platform import WINDOWS
+        if WINDOWS:
+            import subprocess
+            return "resrijan " + subprocess.list2cmdline(list(argv))
         return "resrijan " + " ".join(shlex.quote(a) for a in argv)
 
     def open_path(self, path: str):  # pragma: no cover – overridden by pages that accept files

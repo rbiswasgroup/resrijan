@@ -24,6 +24,8 @@ from typing import List, Optional
 import numpy as np
 from PIL import Image
 
+from .._platform import run
+
 try:
     import pymupdf as fitz  # PyMuPDF >= 1.24
 except ImportError:  # pragma: no cover
@@ -75,7 +77,8 @@ def _ghostscript() -> str:
         if p:
             return p
     raise RuntimeError(
-        "Ghostscript is required for EPS/PS input. Install it with:  sudo apt install ghostscript")
+        "Ghostscript is required for EPS/PS input. Install it with:  sudo apt install ghostscript "
+        "(Windows: the ReSrijan installer includes it, or install it from ghostscript.com)")
 
 
 def ps_to_pdf(path: str, out_dir: Optional[str] = None) -> str:
@@ -86,7 +89,7 @@ def ps_to_pdf(path: str, out_dir: Optional[str] = None) -> str:
     cmd = [gs, "-q", "-dNOPAUSE", "-dBATCH", "-dSAFER", "-sDEVICE=pdfwrite",
            "-dEPSCrop", "-dAutoRotatePages=/None", "-dCompatibilityLevel=1.5",
            "-dEmbedAllFonts=true", "-dSubsetFonts=true", f"-sOutputFile={out}", str(path)]
-    subprocess.run(cmd, check=True, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
+    run(cmd, check=True, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
     return out
 
 
@@ -114,9 +117,9 @@ def _svg_rsvg(src: str, out: str) -> str:
     if not rsvg:
         raise RuntimeError("not installed")
     try:        # -u: allow huge files (Inkscape SVGs embed photos as one long base64 line)
-        subprocess.run([rsvg, "-u", "-f", "pdf", "-o", out, src], check=True, capture_output=True)
+        run([rsvg, "-u", "-f", "pdf", "-o", out, src], check=True, capture_output=True)
     except subprocess.CalledProcessError:
-        subprocess.run([rsvg, "-f", "pdf", "-o", out, src], check=True, capture_output=True)
+        run([rsvg, "-f", "pdf", "-o", out, src], check=True, capture_output=True)
     return out
 
 
@@ -124,7 +127,7 @@ def _svg_inkscape(src: str, out: str) -> str:
     ink = shutil.which("inkscape")
     if not ink:
         raise RuntimeError("not installed")
-    subprocess.run([ink, src, "--export-type=pdf", f"--export-filename={out}"], check=True, capture_output=True)
+    run([ink, src, "--export-type=pdf", f"--export-filename={out}"], check=True, capture_output=True)
     return out
 
 

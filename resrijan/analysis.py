@@ -570,7 +570,7 @@ def write(a: Analysis, base: str, template: str = "natchem", formats: Sequence[s
         r_ = a.y - a.fit.model
         lo_, hi_ = a.fit.x_range
         cols["residual"] = np.where((a.x >= lo_) & (a.x <= hi_), r_, np.nan)
-    with open(base + "_processed.csv", "w") as fh:
+    with open(base + "_processed.csv", "w", encoding="utf-8") as fh:
         fh.write(",".join(cols) + "\n")
         for i in range(len(a.x)):
             fh.write(",".join(f"{v[i]:.10g}" for v in cols.values()) + "\n")
@@ -578,7 +578,7 @@ def write(a: Analysis, base: str, template: str = "natchem", formats: Sequence[s
     rows = peak_table(a)
     if rows:
         keys = list(rows[0])
-        with open(base + "_peaks.csv", "w") as fh:
+        with open(base + "_peaks.csv", "w", encoding="utf-8") as fh:
             fh.write(",".join(keys) + "\n")
             for r in rows:
                 fh.write(",".join(f"{r[k]:.8g}" if isinstance(r[k], float) else str(r[k]) for k in keys) + "\n")
@@ -587,7 +587,7 @@ def write(a: Analysis, base: str, template: str = "natchem", formats: Sequence[s
             "fit": None if not a.fit else {"shape": a.fit.shape, "r2": a.fit.r2, "rmse": a.fit.rmse,
                                            "background": {"intercept": a.fit.background[0],
                                                           "slope": a.fit.background[1]}}}
-    Path(base + "_analysis.json").write_text(json.dumps(meta, indent=1, default=float))
+    Path(base + "_analysis.json").write_text(json.dumps(meta, indent=1, default=float), encoding="utf-8")
     files["json"] = base + "_analysis.json"
     fig = analysis_figure(a, template=template, width=width, xlabel=xlabel, ylabel=ylabel)
     files["figure"] = save(fig, base + "_analysis", formats)

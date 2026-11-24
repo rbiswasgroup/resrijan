@@ -510,7 +510,7 @@ def write(results: List[Tuple[str, FitOutcome, np.ndarray, np.ndarray]], base: s
     dnames = list(results[0][1].derived)
     head = ["series"] + [c for n in names for c in (n, n + "_err")] + [c for n in dnames for c in (n, n + "_err")] + \
            ["r2", "chi2_red", "n", "x_min", "x_max"]
-    with open(base + "_params.csv", "w") as fh:
+    with open(base + "_params.csv", "w", encoding="utf-8") as fh:
         fh.write(",".join(head) + "\n")
         for name, r, _, _ in results:
             row = [_q(name)] + [f"{v:.10g}" for n in names for v in (r.values[n], r.errors[n])]
@@ -518,7 +518,7 @@ def write(results: List[Tuple[str, FitOutcome, np.ndarray, np.ndarray]], base: s
             row += [f"{r.r2:.8g}", f"{r.chi2_red:.6g}", str(r.n), f"{r.x_range[0]:.10g}", f"{r.x_range[1]:.10g}"]
             fh.write(",".join(row) + "\n")
     files["params"] = base + "_params.csv"
-    with open(base + "_fit.csv", "w") as fh:
+    with open(base + "_fit.csv", "w", encoding="utf-8") as fh:
         fh.write("series,x,y,fit,residual\n")
         for name, r, _, _ in results:
             for a, b, c in zip(r.x, r.y, r.fit):
@@ -531,7 +531,7 @@ def write(results: List[Tuple[str, FitOutcome, np.ndarray, np.ndarray]], base: s
          "derived": {k: {"value": v, "error": e} for k, (v, e) in r.derived.items()},
          "covariance": r.covariance.tolist() if r.covariance is not None else None}
         for name, r, _, _ in results]}
-    Path(base + "_fit.json").write_text(json.dumps(meta, indent=1, default=float))
+    Path(base + "_fit.json").write_text(json.dumps(meta, indent=1, default=float), encoding="utf-8")
     files["json"] = base + "_fit.json"
     fig = fit_figure(results, template=template, width=width, xlabel=xlabel, ylabel=ylabel, xscale=xscale, yscale=yscale)
     files["figure"] = save(fig, base + "_fit", formats)

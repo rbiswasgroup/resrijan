@@ -88,13 +88,15 @@ class SettingsPage(Page):
         left.addLayout(btns)
         left.addStretch(1)
 
-        a = self.group("Desktop", right)
+        from ..._platform import WINDOWS
+        a = self.group("Desktop" if not WINDOWS else "Your files", right)
         b_inst = QPushButton(icon("import"), "Add to the application menu")
         b_inst.setToolTip("Creates ~/.local/share/applications/resrijan.desktop with the ReSrijan icon")
         b_inst.clicked.connect(self.install_desktop)
         b_rm = QPushButton("Remove")
         b_rm.clicked.connect(self.remove_desktop)
-        a.addRow(self.row(b_inst, b_rm))
+        if not WINDOWS:                # the Windows installer creates the Start-menu entry
+            a.addRow(self.row(b_inst, b_rm))
         tl = QLabel(f"Your journal templates live in<br><code>{TIO.user_dir()}</code>")
         tl.setWordWrap(True)
         tl.setObjectName("Muted")
@@ -110,6 +112,7 @@ class SettingsPage(Page):
             f"<b>ReSrijan {__version__}</b> (पुनःसृजन, “re-creation”)<br>"
             "Turns published scientific figures back into data and redraws them in journal style.<br><br>"
             "Everything runs on this computer; nothing is uploaded.<br>"
+            f"Settings are kept in {'the Windows registry' if WINDOWS else '~/.config/ReSrijan'}.<br>"
             "Every action here is a <code>resrijan</code> command – see the command line under each page.<br><br>"
             "<a href='https://github.com/rbiswasgroup/resrijan'>github.com/rbiswasgroup/resrijan</a> · "
             "<a href='https://github.com/rbiswasgroup/resrijan/tree/main/docs/tutorials'>tutorials</a><br>"

@@ -113,16 +113,23 @@ class Template:
         return self.panel_label.get("format", "{}").format(c)
 
 
+def user_template_dir() -> Path:
+    """$RESRIJAN_TEMPLATES, else %APPDATA%\\resrijan\\templates (Windows) or ~/.config/resrijan/templates."""
+    from .._platform import user_config_dir
+    env = os.environ.get("RESRIJAN_TEMPLATES")
+    return Path(env) if env else user_config_dir() / "templates"
+
+
 @lru_cache(maxsize=None)
 def _all() -> Dict[str, Template]:
     out = {}
     dirs = [TEMPLATE_DIR]
-    user = os.environ.get("RESRIJAN_TEMPLATES") or os.path.expanduser("~/.config/resrijan/templates")
+    user = str(user_template_dir())
     if os.path.isdir(user):
         dirs.append(Path(user))
     for d in dirs:
         for p in sorted(Path(d).glob("*.yaml")):
-            y = yaml.safe_load(open(p))
+            y = yaml.safe_load(open(p, encoding="utf-8"))
             t = Template(key=y["key"], name=y["name"], widths_mm=y["widths_mm"], max_height_mm=y["max_height_mm"],
                          font=y["font"], panel_label=y["panel_label"], axes=y["axes"], lines=y["lines"],
                          palette=y["palette"], cmap=y.get("cmap", {}), export=y.get("export", {}),
@@ -140,7 +147,7 @@ def get(name: str) -> Template:
         if n in [a.lower() for a in t.aliases]:
             return t
     if os.path.isfile(name):
-        y = yaml.safe_load(open(name))
+        y = yaml.safe_load(open(name, encoding="utf-8"))
         return Template(key=y["key"], name=y["name"], widths_mm=y["widths_mm"], max_height_mm=y["max_height_mm"],
                         font=y["font"], panel_label=y["panel_label"], axes=y["axes"], lines=y["lines"],
                         palette=y["palette"], cmap=y.get("cmap", {}), export=y.get("export", {}),

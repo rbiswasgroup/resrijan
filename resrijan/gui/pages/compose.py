@@ -133,7 +133,7 @@ class ComposePage(Page):
 
     def open_path(self, path: str):
         try:
-            text = Path(path).read_text()
+            text = Path(path).read_text(encoding="utf-8")
         except OSError as exc:
             self.error("Open", str(exc))
             return
@@ -156,7 +156,7 @@ class ComposePage(Page):
         if not self.path:
             return self.save_as()
         try:
-            Path(self.path).write_text(self.editor.toPlainText())
+            Path(self.path).write_text(self.editor.toPlainText(), encoding="utf-8")
         except OSError as exc:
             self.error("Save", str(exc))
             return False

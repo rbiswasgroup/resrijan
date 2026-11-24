@@ -55,8 +55,8 @@ def test_digitize_page_matches_cli(win, tmp_path):
     # the command shown in the GUI, run through the real CLI, gives identical data
     cli_argv = [a if a != str(tmp_path / "gui") else str(tmp_path / "cli") for a in argv]
     assert main(cli_argv) == 0
-    g = (tmp_path / "gui" / "bar_err_p1_a_bars.csv").read_text()
-    c = (tmp_path / "cli" / "bar_err_p1_a_bars.csv").read_text()
+    g = (tmp_path / "gui" / "bar_err_p1_a_bars.csv").read_text(encoding="utf-8")
+    c = (tmp_path / "cli" / "bar_err_p1_a_bars.csv").read_text(encoding="utf-8")
     assert g == c
 
 
@@ -104,7 +104,7 @@ def test_template_import_validate_delete(win, tmp_path):
     from resrijan.gui import templates_io as TIO
     from resrijan.plot import templates as T
     t = win.pages["templates"]
-    src = Path(T.get("natchem").path).read_text()
+    src = Path(T.get("natchem").path).read_text(encoding="utf-8")
     good = tmp_path / "mylab.yaml"
     good.write_text(TIO.duplicate_text(T.get("natchem").path, "mylab", "My lab style"))
     t.import_path(str(good))
@@ -138,7 +138,7 @@ def test_compose_preview_png():
     import yaml
     from resrijan.gui.render import compose_preview
     spec_path = EX / "11_compose_figure" / "figure_natchem.yaml"
-    png = compose_preview(yaml.safe_load(spec_path.read_text()), str(spec_path.parent))
+    png = compose_preview(yaml.safe_load(spec_path.read_text(encoding="utf-8")), str(spec_path.parent))
     assert png[:8] == b"\x89PNG\r\n\x1a\n"
 
 

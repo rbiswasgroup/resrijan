@@ -1,8 +1,7 @@
-"""Import, validate, duplicate and delete journal templates (user folder:
-$RESRIJAN_TEMPLATES or ~/.config/resrijan/templates)."""
+"""Import, validate, duplicate and delete journal templates (user folder: $RESRIJAN_TEMPLATES,
+%APPDATA%\\resrijan\\templates on Windows, ~/.config/resrijan/templates elsewhere)."""
 from __future__ import annotations
 
-import os
 import re
 from pathlib import Path
 
@@ -17,7 +16,7 @@ LINE_KEYS = ["linewidth", "markersize", "capsize", "errorbar_lw"]
 
 
 def user_dir() -> Path:
-    return Path(os.environ.get("RESRIJAN_TEMPLATES") or os.path.expanduser("~/.config/resrijan/templates"))
+    return T.user_template_dir()
 
 
 def builtin_keys() -> set:
@@ -82,18 +81,18 @@ def save_template(text: str, overwrite: bool = False) -> Path:
     if p.exists() and not overwrite:
         raise FileExistsError(str(p))
     p.parent.mkdir(parents=True, exist_ok=True)
-    p.write_text(text)
+    p.write_text(text, encoding="utf-8")
     reload()
     return p
 
 
 def import_file(path: str, overwrite: bool = False) -> Path:
-    return save_template(Path(path).read_text(), overwrite=overwrite)
+    return save_template(Path(path).read_text(encoding="utf-8"), overwrite=overwrite)
 
 
 def duplicate_text(src_path: str, new_key: str, new_name: str) -> str:
     """Copy of a template's YAML with a new key, name and no aliases (comments kept)."""
-    text = Path(src_path).read_text()
+    text = Path(src_path).read_text(encoding="utf-8")
     text = re.sub(r"(?m)^key:.*$", f"key: {new_key}", text)
     text = re.sub(r"(?m)^name:.*$", f"name: {new_name}", text)
     text = re.sub(r"(?m)^aliases:.*$", "aliases: []", text)

@@ -157,7 +157,7 @@ class MainWindow(QMainWindow):
         elif ext in (".yaml", ".yml"):
             try:
                 import yaml
-                y = yaml.safe_load(p.read_text()) or {}
+                y = yaml.safe_load(p.read_text(encoding="utf-8")) or {}
             except Exception:  # noqa: BLE001
                 y = {}
             self.open_in("templates" if isinstance(y, dict) and "widths_mm" in y else "compose", path)

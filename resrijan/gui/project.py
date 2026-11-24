@@ -62,12 +62,12 @@ def save(path: str, pages: dict, current: str) -> str:
         path += EXT
     doc = {"format": FORMAT, "version": 1, "resrijan": __version__, "current_page": current,
            "pages": to_relative(pages, path)}
-    Path(path).write_text(json.dumps(doc, indent=1, ensure_ascii=False))
+    Path(path).write_text(json.dumps(doc, indent=1, ensure_ascii=False), encoding="utf-8")
     return path
 
 
 def load(path: str) -> dict:
-    doc = json.loads(Path(path).read_text())
+    doc = json.loads(Path(path).read_text(encoding="utf-8"))
     if doc.get("format") != FORMAT:
         raise ValueError(f"{Path(path).name} is not a ReSrijan project file")
     if int(doc.get("version", 1)) > 1:
