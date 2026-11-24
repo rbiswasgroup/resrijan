@@ -22,6 +22,7 @@ Each tutorial uses a ready-made file in [`examples/`](../../examples) and shows 
 | 15 | [Python API](15-python-api.md) | — | using ReSrijan from scripts and notebooks |
 | 16 | [Image figures](16-image-figures.md) | `hrtem_insets.pdf`, `timelapse.svg` | HRTEM insets, d-spacing check, time-lapse series, `--scale` |
 | 17 | [Tricky axes](17-tricky-axes.md) | `examples/14_tricky_axes/*.pdf` | parity plots, stacked spectra, unnumbered axes, contour pairs, point labels |
+| 18 | [The graphical interface](18-gui.md) | any | every command in a window: previews, clicking ticks, template import |
 
 To regenerate every output and picture used here:
 

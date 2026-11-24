@@ -62,6 +62,18 @@ cd resrijan
 
 Other Linux distributions work with the same packages. macOS should work with Homebrew equivalents but is untested.
 
+## Graphical interface
+
+Prefer a window? `pip install "resrijan[gui]"`, then run `resrijan gui`. Every command and option is there, in a dark interface:
+- draw the region and click axis ticks on a preview;
+- browse the replots, overlays and data;
+- plot your own data with a live preview, and compose multi-panel figures;
+- import and edit journal templates.
+
+Each page shows the equivalent `resrijan` command, ready to copy into a script. See [tutorial 18](https://github.com/rbiswasgroup/resrijan/blob/main/docs/tutorials/18-gui.md).
+
+![The ReSrijan GUI](https://raw.githubusercontent.com/rbiswasgroup/resrijan/main/docs/images/gui_digitize_results.png)
+
 ## Quick start
 
 ```bash
@@ -95,6 +107,7 @@ The tutorials in [`docs/tutorials/`](https://github.com/rbiswasgroup/resrijan/bl
 | [3 · Log axes](https://github.com/rbiswasgroup/resrijan/blob/main/docs/tutorials/03-log-axes.md) | [9 · Multi-panel pages](https://github.com/rbiswasgroup/resrijan/blob/main/docs/tutorials/09-multipanel-pages.md) | [15 · Python API](https://github.com/rbiswasgroup/resrijan/blob/main/docs/tutorials/15-python-api.md) |
 | [4 · Scatter & error bars](https://github.com/rbiswasgroup/resrijan/blob/main/docs/tutorials/04-scatter-errorbars.md) | [10 · SVG, EPS, PS](https://github.com/rbiswasgroup/resrijan/blob/main/docs/tutorials/10-svg-eps-ps.md) | [16 · Image figures](https://github.com/rbiswasgroup/resrijan/blob/main/docs/tutorials/16-image-figures.md) |
 | [5 · Bar charts](https://github.com/rbiswasgroup/resrijan/blob/main/docs/tutorials/05-bar-charts.md) | [11 · When automatic reading fails](https://github.com/rbiswasgroup/resrijan/blob/main/docs/tutorials/11-manual-calibration.md) | [17 · Tricky axes](https://github.com/rbiswasgroup/resrijan/blob/main/docs/tutorials/17-tricky-axes.md) |
+| | | [18 · Graphical interface](https://github.com/rbiswasgroup/resrijan/blob/main/docs/tutorials/18-gui.md) |
 
 ## Accuracy
 

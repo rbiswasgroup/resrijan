@@ -1,5 +1,16 @@
 # Changelog
 
+## Unreleased
+* **Graphical interface** (`pip install "resrijan[gui]"`, then `resrijan gui` or `resrijan-gui`): a dark Qt interface with every command and option of the CLI.
+  * Digitize, with a page preview, region drawing and tick clicking for manual calibration, and a results browser (replots, overlays, data, notes, combined figure, report).
+  * Plot, with column and error-column pickers and a live preview.
+  * Compose, a YAML editor with a preview.
+  * Templates: browse with a sample figure; import (validated), duplicate, edit and delete your own.
+  * Inspect, and Settings (defaults, output folder, application-menu entry for Linux).
+  * Each page shows the equivalent `resrijan` command; the GUI runs the CLI's own parser and functions, so both give identical results.
+* CLI: commands are split into reusable `run_*` functions and `build_parser()`; new `gui` command.
+* Tutorial 18 (the graphical interface).
+
 ## 0.4.0 — 2026-11-24
 
 First public release.

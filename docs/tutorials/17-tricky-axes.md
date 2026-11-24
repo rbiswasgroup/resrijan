@@ -135,4 +135,4 @@ The warnings are real: each x axis has only two numbers, so a misread could not 
 * A bold italic mathtext title (`$\mathit{t}_d$` in bold) is drawn italic but not bold.
 * Panels that touch in the source (shared edge) are drawn with the normal gap in the combined replot.
 
-Back to the [tutorial index](README.md).
+Next: [18 · The graphical interface](18-gui.md)
