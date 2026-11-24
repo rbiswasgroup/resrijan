@@ -26,6 +26,18 @@ Releases go to PyPI automatically when a GitHub release is published (`.github/w
 4. Commit, then on GitHub *Releases → Draft a new release*: tag `vX.Y.Z` (it must match the version in `pyproject.toml`), title `ReSrijan X.Y.Z`, paste the CHANGELOG section, attach nothing, and *Publish*. The `Release` workflow builds the sdist and wheel, checks them, and uploads them to PyPI.
 5. Check the result: `pip install --upgrade resrijan` in a fresh virtual environment, then `resrijan --version`.
 
+## Windows installer
+
+Built on Linux (no Windows machine needed); see `tools/windows/build_windows.py`:
+
+```bash
+sudo apt install nsis
+python -m venv ~/winbuild && ~/winbuild/bin/pip install py-rattler pillow pefile
+~/winbuild/bin/python tools/windows/build_windows.py      # → build/windows/ReSrijan-<version>-Setup.exe
+```
+
+The script takes Python, Qt, the scientific libraries, Tesseract, Ghostscript and librsvg from conda-forge's Windows (win-64) builds. It prunes what ReSrijan does not use, makes the runtime relocatable, and wraps it with NSIS (`tools/windows/installer.nsi`). Test the installer on a Windows 10/11 PC before attaching it to the GitHub release; until it is code-signed, Windows SmartScreen warns on first start.
+
 ## Optional
 
 * **Zenodo DOI.** Sign in to <https://zenodo.org> with GitHub, enable the `resrijan` repository under *GitHub*, then publish the release: Zenodo archives it and mints a DOI. Add the DOI badge to `README.md` and the `doi:` field to `CITATION.cff`.

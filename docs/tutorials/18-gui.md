@@ -12,6 +12,8 @@ resrijan gui figure.pdf          # open a file straight away
 
 `./install.sh` from the source code installs the GUI too and adds ReSrijan to your application menu. From an existing installation you can add the menu entry under **Settings → Add to the application menu**.
 
+**Windows 10/11:** run `ReSrijan-<version>-Setup.exe`. It needs no administrator rights and no other downloads. Start ReSrijan from the Start menu; **ReSrijan command prompt** opens a console where `resrijan …` works. Right-click a figure and choose **Open with → ReSrijan** to open it directly. Your templates live in `%APPDATA%\resrijan\templates`, and settings in the registry. Uninstall from **Settings → Apps** (your templates are kept).
+
 Drop any file on the window and it goes to the right page:
 - figures (PDF, EPS, SVG, PNG …) go to **Digitize**;
 - data tables (CSV, TSV, NPZ) go to **Plot**;

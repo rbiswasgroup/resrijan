@@ -48,6 +48,8 @@
 * Colours: a colour per series in Plot and a title colour in Plot and Digitize (CLI: `plot --colors`, `plot/digitize --label-color`; invalid colours are refused with a clear message).
 * Image figures: bitmaps drawn through a transparency mask (3-D AFM renderings written by Cairo) keep their white background instead of turning black, and are no longer cropped; text placed over an image keeps its size relative to the image.
 * Tutorial 18 (the graphical interface).
+* **Windows 10/11 installer** (`ReSrijan-<version>-Setup.exe`, per user, no administrator rights), built on Linux by `tools/windows/build_windows.py` from conda-forge's Windows packages, with Python, Qt, Tesseract, Ghostscript and librsvg inside. It adds a Start-menu entry, a command prompt with `resrijan`, "Open with → ReSrijan" and an uninstaller.
+* Windows support in the code: UTF-8 for every file read and written; external programs started without console windows; journal templates in `%APPDATA%\resrijan\templates`; Windows-style quoting in the command shown by the GUI.
 
 ## 0.4.0 — 2026-11-24
 

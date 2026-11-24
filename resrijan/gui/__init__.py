@@ -24,6 +24,12 @@ def main(argv=None) -> int:
     from .mainwindow import ASSETS, MainWindow
 
     argv = list(sys.argv[1:] if argv is None else argv)
+    if sys.platform.startswith("win"):      # own taskbar group and icon (not Python's)
+        try:
+            import ctypes
+            ctypes.windll.shell32.SetCurrentProcessExplicitAppUserModelID("ReSrijan.ReSrijan")
+        except Exception:  # noqa: BLE001
+            pass
     app = QApplication.instance() or QApplication([sys.argv[0]])
     app.setApplicationName("ReSrijan")
     app.setOrganizationName("ReSrijan")

@@ -44,7 +44,13 @@ Everything runs locally. No uploads, no web service.
 * **Journal templates** as plain YAML files: `natchem`, `acs`, `aps`, `jcp`, `science`, `pnas`, `rsc` and `presentation`, or your own.
 * **Automatic multi-panel layout** with panel letters in the journal's style. Text stays editable in Illustrator and Inkscape.
 
-## Install (Ubuntu 22.04 / 24.04)
+## Install on Windows 10/11
+
+Download **ReSrijan-<version>-Setup.exe** from the [releases page](https://github.com/rbiswasgroup/resrijan/releases) and run it. Everything is included (Python, the GUI, Tesseract OCR, Ghostscript), and no administrator rights are needed. ReSrijan then appears in the Start menu; **ReSrijan command prompt** gives you the `resrijan` command as well.
+
+Windows may show "Windows protected your PC", because the installer is not code-signed yet. Click **More info → Run anyway**.
+
+## Install on Linux (Ubuntu 22.04 / 24.04)
 
 ReSrijan needs three system tools (Tesseract for OCR, Ghostscript for EPS/PS, librsvg for SVG) and Python 3.10 or newer:
 
