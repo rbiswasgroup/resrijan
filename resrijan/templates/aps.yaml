@@ -1,0 +1,24 @@
+# APS Physical Review (PRL, PRB, PRE, ...), REVTeX two-column layout.
+# Column width 3.375 in (8.6 cm), page width 7.0 in (17.8 cm); serif lettering to match
+# Times text; panel labels (a), (b).
+name: APS Physical Review
+key: aps
+aliases: [prl, prb, pre, prx, physrev, revtex]
+widths_mm: {single: 86.0, onehalf: 120, double: 178.0}
+max_height_mm: 230
+font:
+  family: serif
+  names: [Times New Roman, Times, Liberation Serif, Nimbus Roman, TeX Gyre Termes, STIXGeneral, DejaVu Serif]
+  size: 8
+  tick: 8
+  label: 9
+  legend: 7
+  min: 6
+  max: 10
+mathtext: stix
+panel_label: {format: "({})", case: lower, weight: normal, size: 9}
+axes: {linewidth: 0.6, tick_direction: in, tick_length: 3.5, minor_length: 2.0, tick_width: 0.6, spines: [left, bottom, top, right], mirror_ticks: true}
+lines: {linewidth: 1.0, markersize: 3.5, capsize: 1.5, errorbar_lw: 0.7}
+palette: ["#000000", "#E41A1C", "#377EB8", "#4DAF4A", "#984EA3", "#FF7F00", "#A65628", "#F781BF"]
+cmap: {sequential: viridis, diverging: RdBu_r}
+export: {dpi: 600}

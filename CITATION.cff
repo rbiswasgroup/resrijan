@@ -1,0 +1,19 @@
+cff-version: 1.2.0
+message: "If you use ReSrijan, please cite it as below."
+title: "ReSrijan: recreating scientific figures – data from published figures, redrawn in journal style"
+type: software
+authors:
+  - family-names: Biswas
+    given-names: Rajib
+    affiliation: "Indian Institute of Technology Tirupati"
+version: 0.4.0
+date-released: 2026-11-24
+license: AGPL-3.0-or-later
+repository-code: "https://github.com/rbiswasgroup/resrijan"
+keywords:
+  - plot digitizer
+  - data extraction
+  - scientific figures
+  - journal figure templates
+  - vibrational spectroscopy
+  - microscopy

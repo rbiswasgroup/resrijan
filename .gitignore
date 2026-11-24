@@ -1,0 +1,15 @@
+__pycache__/
+*.py[cod]
+*.egg-info/
+build/
+dist/
+.venv/
+.pytest_cache/
+.ruff_cache/
+# generated outputs
+*_resrijan/
+examples/*/output/
+testset/
+results/
+docs/_runs/
+out/

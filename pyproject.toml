@@ -1,0 +1,62 @@
+[build-system]
+requires = ["setuptools>=77"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "resrijan"
+version = "0.4.0"
+description = "Turn published scientific figures (PDF, EPS, SVG, PNG, JPG) back into data and redraw them in journal style"
+readme = "README.md"
+requires-python = ">=3.10"
+license = "AGPL-3.0-or-later"
+license-files = ["LICENSE"]
+authors = [{name = "Rajib Biswas"}]
+keywords = ["plot digitizer", "data extraction", "scientific figures", "matplotlib", "journal templates",
+            "2D-IR", "NMR", "micrograph", "HRTEM", "OCR"]
+classifiers = [
+  "Development Status :: 4 - Beta",
+  "Intended Audience :: Science/Research",
+  "Operating System :: POSIX :: Linux",
+  "Programming Language :: Python :: 3",
+  "Programming Language :: Python :: 3.10",
+  "Programming Language :: Python :: 3.11",
+  "Programming Language :: Python :: 3.12",
+  "Programming Language :: Python :: 3.13",
+  "Topic :: Scientific/Engineering :: Chemistry",
+  "Topic :: Scientific/Engineering :: Physics",
+  "Topic :: Scientific/Engineering :: Visualization",
+  "Topic :: Scientific/Engineering :: Image Recognition",
+]
+dependencies = [
+  "numpy>=1.22", "scipy>=1.8", "matplotlib>=3.6", "opencv-python-headless>=4.6",
+  "scikit-image>=0.20", "scikit-learn>=1.1", "pymupdf>=1.23", "pillow>=9", "pytesseract>=0.3.10", "pyyaml>=6",
+]
+
+[project.optional-dependencies]
+dev = ["pytest>=7", "ruff>=0.4", "pandas"]
+
+[project.urls]
+Homepage = "https://github.com/rbiswasgroup/resrijan"
+Documentation = "https://github.com/rbiswasgroup/resrijan/tree/main/docs/tutorials"
+Issues = "https://github.com/rbiswasgroup/resrijan/issues"
+Changelog = "https://github.com/rbiswasgroup/resrijan/blob/main/CHANGELOG.md"
+
+[project.scripts]
+resrijan = "resrijan.cli:main"
+
+[tool.setuptools.packages.find]
+include = ["resrijan*"]
+
+[tool.setuptools.package-data]
+resrijan = ["templates/*.yaml"]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+
+[tool.ruff]
+line-length = 120
+target-version = "py310"
+
+[tool.ruff.lint]
+select = ["E", "F", "W"]
+ignore = ["E501", "E701", "E702", "E741", "E731"]

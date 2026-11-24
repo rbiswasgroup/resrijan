@@ -1,0 +1,23 @@
+# PNAS. Widths 8.7 cm (1 col), 11.4 cm (1.5 col), 17.8 cm (2 col); max height 22.5 cm;
+# Arial/Helvetica/Times, 6–8 pt at final size (no smaller than 6 pt); panel labels bold capitals.
+name: PNAS
+key: pnas
+aliases: [pnas-nexus]
+widths_mm: {single: 87, onehalf: 114, double: 178}
+max_height_mm: 225
+font:
+  family: sans-serif
+  names: [Arial, Helvetica, Liberation Sans, Nimbus Sans, TeX Gyre Heros, DejaVu Sans]
+  size: 7
+  tick: 6.5
+  label: 7.5
+  legend: 6.5
+  min: 6
+  max: 8
+mathtext: dejavusans
+panel_label: {format: "{}", case: upper, weight: bold, size: 9}
+axes: {linewidth: 0.6, tick_direction: out, tick_length: 2.5, minor_length: 1.5, tick_width: 0.6, spines: [left, bottom], mirror_ticks: false}
+lines: {linewidth: 1.0, markersize: 3.5, capsize: 1.5, errorbar_lw: 0.6}
+palette: ["#0072B2", "#D55E00", "#009E73", "#CC79A7", "#E69F00", "#56B4E9", "#000000", "#F0E442"]
+cmap: {sequential: viridis, diverging: RdBu_r}
+export: {dpi: 600}

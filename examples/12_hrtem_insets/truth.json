@@ -1,0 +1,136 @@
+{
+ "nm_per_px": 0.05,
+ "scale_bar": {
+  "value_nm": 5,
+  "length_px": 100
+ },
+ "visible_rows": 446,
+ "grains": [
+  {
+   "seed_px": [
+    90.0,
+    120.0
+   ],
+   "d_nm": 0.352,
+   "period_px": 7.039999999999999,
+   "normal_angle_deg": 112.51718398884006
+  },
+  {
+   "seed_px": [
+    300.0,
+    90.0
+   ],
+   "d_nm": 0.325,
+   "period_px": 6.5,
+   "normal_angle_deg": 139.62342424413484
+  },
+  {
+   "seed_px": [
+    520.0,
+    140.0
+   ],
+   "d_nm": 0.248,
+   "period_px": 4.96,
+   "normal_angle_deg": 40.53729419830653
+  },
+  {
+   "seed_px": [
+    140.0,
+    330.0
+   ],
+   "d_nm": 0.238,
+   "period_px": 4.76,
+   "normal_angle_deg": 54.02993128402058
+  },
+  {
+   "seed_px": [
+    360.0,
+    300.0
+   ],
+   "d_nm": 0.352,
+   "period_px": 7.039999999999999,
+   "normal_angle_deg": 0.9477548218034504
+  },
+  {
+   "seed_px": [
+    560.0,
+    380.0
+   ],
+   "d_nm": 0.219,
+   "period_px": 4.38,
+   "normal_angle_deg": 147.82111530889793
+  },
+  {
+   "seed_px": [
+    250.0,
+    440.0
+   ],
+   "d_nm": 0.325,
+   "period_px": 6.5,
+   "normal_angle_deg": 143.47249717536832
+  },
+  {
+   "seed_px": [
+    450.0,
+    200.0
+   ],
+   "d_nm": 0.189,
+   "period_px": 3.78,
+   "normal_angle_deg": 54.545836827476435
+  }
+ ],
+ "insets": [
+  {
+   "label": "d = 0.352 nm (101)",
+   "true_d_nm": 0.352,
+   "source_box_px": [
+    60,
+    95,
+    120,
+    145
+   ],
+   "magnification": 4.0,
+   "nm_per_px": 0.0125,
+   "label_correct": true
+  },
+  {
+   "label": "d = 0.238 nm (004)",
+   "true_d_nm": 0.238,
+   "source_box_px": [
+    110,
+    305,
+    170,
+    355
+   ],
+   "magnification": 4.0,
+   "nm_per_px": 0.0125,
+   "label_correct": true
+  },
+  {
+   "label": "d = 0.27 nm (111)",
+   "true_d_nm": 0.248,
+   "source_box_px": [
+    490,
+    115,
+    550,
+    165
+   ],
+   "magnification": 4.0,
+   "nm_per_px": 0.0125,
+   "label_correct": false
+  },
+  {
+   "label": "d = 0.325 nm (110)",
+   "true_d_nm": 0.325,
+   "source_box_px": [
+    270,
+    65,
+    330,
+    115
+   ],
+   "magnification": 4.0,
+   "nm_per_px": 0.0125,
+   "label_correct": true
+  }
+ ]
+}

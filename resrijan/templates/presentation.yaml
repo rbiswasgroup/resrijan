@@ -1,0 +1,22 @@
+# Large-type slides / posters (16:9 slide ~ 254 mm wide).
+name: Presentation
+key: presentation
+aliases: [slides, talk, poster]
+widths_mm: {single: 120, double: 240}
+max_height_mm: 135
+font:
+  family: sans-serif
+  names: [Arial, Helvetica, Liberation Sans, Nimbus Sans, DejaVu Sans]
+  size: 14
+  tick: 12
+  label: 14
+  legend: 12
+  min: 10
+  max: 20
+mathtext: dejavusans
+panel_label: {format: "{}", case: lower, weight: bold, size: 16}
+axes: {linewidth: 1.2, tick_direction: out, tick_length: 5, minor_length: 3, tick_width: 1.2, spines: [left, bottom], mirror_ticks: false}
+lines: {linewidth: 2.2, markersize: 7, capsize: 3, errorbar_lw: 1.4}
+palette: ["#0072B2", "#D55E00", "#009E73", "#CC79A7", "#E69F00", "#56B4E9", "#000000", "#F0E442"]
+cmap: {sequential: viridis, diverging: RdBu_r}
+export: {dpi: 300}

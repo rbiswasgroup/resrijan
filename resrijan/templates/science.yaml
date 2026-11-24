@@ -1,0 +1,24 @@
+# Science (AAAS). Three-column page: 1 col ~5.7 cm, 2 col ~12.1 cm, full width ~18.4 cm.
+# Sans-serif lettering (Helvetica/Arial; Myriad in production); panel labels bold capitals.
+# Verify widths against the current "Instructions for preparing revised manuscripts".
+name: Science
+key: science
+aliases: [aaas, sciadv, science-advances]
+widths_mm: {single: 57, onehalf: 121, double: 121, full: 184}
+max_height_mm: 220
+font:
+  family: sans-serif
+  names: [Myriad Pro, Helvetica, Arial, Liberation Sans, Nimbus Sans, TeX Gyre Heros, DejaVu Sans]
+  size: 7
+  tick: 6
+  label: 7
+  legend: 6
+  min: 5
+  max: 8
+mathtext: dejavusans
+panel_label: {format: "{}", case: upper, weight: bold, size: 9}
+axes: {linewidth: 0.6, tick_direction: out, tick_length: 2.5, minor_length: 1.5, tick_width: 0.6, spines: [left, bottom], mirror_ticks: false}
+lines: {linewidth: 1.0, markersize: 3.5, capsize: 1.5, errorbar_lw: 0.6}
+palette: ["#0072B2", "#D55E00", "#009E73", "#CC79A7", "#E69F00", "#56B4E9", "#000000", "#F0E442"]
+cmap: {sequential: viridis, diverging: RdBu_r}
+export: {dpi: 600}

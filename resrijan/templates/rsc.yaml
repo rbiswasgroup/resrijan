@@ -1,0 +1,23 @@
+# Royal Society of Chemistry (PCCP, Chem. Sci., ...). Single 8.3 cm, double 17.1 cm,
+# max length 23.3 cm; Arial/Helvetica 7 pt.
+name: RSC (PCCP, Chem. Sci.)
+key: rsc
+aliases: [pccp, chemsci, rsc-advances]
+widths_mm: {single: 83, double: 171}
+max_height_mm: 233
+font:
+  family: sans-serif
+  names: [Arial, Helvetica, Liberation Sans, Nimbus Sans, TeX Gyre Heros, DejaVu Sans]
+  size: 7
+  tick: 7
+  label: 7.5
+  legend: 6.5
+  min: 6
+  max: 9
+mathtext: dejavusans
+panel_label: {format: "({})", case: lower, weight: bold, size: 8}
+axes: {linewidth: 0.6, tick_direction: in, tick_length: 3.0, minor_length: 1.75, tick_width: 0.6, spines: [left, bottom, top, right], mirror_ticks: true}
+lines: {linewidth: 1.1, markersize: 3.5, capsize: 1.5, errorbar_lw: 0.7}
+palette: ["#000000", "#D62728", "#1F77B4", "#2CA02C", "#FF7F0E", "#9467BD", "#8C564B", "#17BECF"]
+cmap: {sequential: viridis, diverging: RdBu_r}
+export: {dpi: 600}

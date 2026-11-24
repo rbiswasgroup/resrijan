@@ -1,0 +1,25 @@
+# ACS journals (JACS, JPCL, JPC A/B/C, Langmuir, ...).
+# Source: ACS author guidelines, Appendix 2 – single column up to 3.25–3.33 in, double column
+# 4.17–7 in, max depth 9.17 in incl. caption, Arial/Helvetica, lettering >= 4.5 pt at final size
+# (Fast Format checklist asks >= 8 pt); line art 1200 dpi, combination 600 dpi.
+name: ACS (JACS, JPCL, J. Phys. Chem.)
+key: acs
+aliases: [jacs, jpcl, jpca, jpcb, jpcc, langmuir, acsnano]
+widths_mm: {single: 82.55, onehalf: 120, double: 177.8}
+max_height_mm: 233
+font:
+  family: sans-serif
+  names: [Arial, Helvetica, Liberation Sans, Nimbus Sans, TeX Gyre Heros, DejaVu Sans]
+  size: 8
+  tick: 7
+  label: 8
+  legend: 7
+  min: 4.5
+  max: 10
+mathtext: dejavusans
+panel_label: {format: "({})", case: lower, weight: bold, size: 9}
+axes: {linewidth: 0.75, tick_direction: in, tick_length: 3.0, minor_length: 1.75, tick_width: 0.75, spines: [left, bottom, top, right], mirror_ticks: true}
+lines: {linewidth: 1.2, markersize: 4, capsize: 2, errorbar_lw: 0.8}
+palette: ["#000000", "#D62728", "#1F77B4", "#2CA02C", "#FF7F0E", "#9467BD", "#8C564B", "#17BECF"]
+cmap: {sequential: viridis, diverging: RdBu_r}
+export: {dpi: 600}

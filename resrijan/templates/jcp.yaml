@@ -1,0 +1,30 @@
+# The Journal of Chemical Physics (AIP Publishing) – also suits other AIP journals
+# (JAP, APL, AIP Advances, Chaos, J. Chem. Phys. Communications).
+# Source: AIP Publishing general manuscript guidelines (publishing.aip.org) –
+#   one column max 3.37 in (8.5 cm), two columns max 6.69 in (17 cm), max depth 8.25 in (21.1 cm);
+#   lettering >= 8 pt, lines >= 0.5 pt, fonts embedded; panel labels (a), (b), …;
+#   line art 600 dpi, combination 600 dpi, colour 300 dpi.
+# AIP does not prescribe a typeface. Sans-serif is used here; for a Times look switch
+#   family to serif and names to [Times New Roman, Times, Liberation Serif, Nimbus Roman, STIXGeneral]
+#   and set mathtext: stix.
+name: J. Chem. Phys. (AIP Publishing)
+key: jcp
+aliases: [aip, jap, apl, aipadvances, jchemphys]
+widths_mm: {single: 85, onehalf: 120, double: 170}
+max_height_mm: 211
+font:
+  family: sans-serif
+  names: [Arial, Helvetica, Liberation Sans, Nimbus Sans, TeX Gyre Heros, DejaVu Sans]
+  size: 8
+  tick: 8
+  label: 9
+  legend: 8
+  min: 8
+  max: 10
+mathtext: dejavusans
+panel_label: {format: "({})", case: lower, weight: normal, size: 9}
+axes: {linewidth: 0.75, tick_direction: in, tick_length: 3.5, minor_length: 2.0, tick_width: 0.75, spines: [left, bottom, top, right], mirror_ticks: true}
+lines: {linewidth: 1.2, markersize: 4, capsize: 2, errorbar_lw: 0.75}
+palette: ["#000000", "#D62728", "#1F77B4", "#2CA02C", "#FF7F0E", "#9467BD", "#8C564B", "#17BECF"]
+cmap: {sequential: viridis, diverging: RdBu_r}
+export: {dpi: 600}

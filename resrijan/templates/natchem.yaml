@@ -1,0 +1,24 @@
+# Nature Chemistry (Nature Portfolio house rules).
+# Source: research-figure-guide.nature.com – widths 89 / 183 mm, max height 170 mm,
+# all text 5–7 pt, sans-serif (Arial/Helvetica), editable (non-outlined) text, images >= 450 dpi.
+name: Nature Chemistry
+key: natchem
+aliases: [nature, nchem, ncomms, natcomm, nature-portfolio]
+widths_mm: {single: 89, onehalf: 120, onehalf_wide: 136, double: 183}
+max_height_mm: 170
+font:
+  family: sans-serif
+  names: [Arial, Helvetica, Liberation Sans, Nimbus Sans, TeX Gyre Heros, DejaVu Sans]
+  size: 7
+  tick: 6
+  label: 7
+  legend: 6
+  min: 5
+  max: 7
+mathtext: dejavusans
+panel_label: {format: "{}", case: lower, weight: bold, size: 8}
+axes: {linewidth: 0.5, tick_direction: out, tick_length: 2.5, minor_length: 1.5, tick_width: 0.5, spines: [left, bottom], mirror_ticks: false}
+lines: {linewidth: 1.0, markersize: 3.5, capsize: 1.5, errorbar_lw: 0.6}
+palette: ["#0072B2", "#D55E00", "#009E73", "#CC79A7", "#E69F00", "#56B4E9", "#000000", "#F0E442"]
+cmap: {sequential: viridis, diverging: RdBu_r}
+export: {dpi: 600}

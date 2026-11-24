@@ -1,0 +1,41 @@
+# Multi-panel figure from raw data files, laid out automatically for Nature Chemistry.
+#   resrijan compose examples/figure_natchem.yaml
+figure:
+  template: natchem          # natchem | acs | aps | jcp | science | pnas | rsc | presentation | path/to/own.yaml
+  width: double              # single | onehalf | double | <mm>
+  labels: true               # a, b, c … in the journal's style
+  formats: [pdf, svg, png, tiff]
+  output: output/figure_natchem   # relative to this file
+panels:
+  - type: line
+    data: data/correlation.csv
+    x: t_ps
+    y: [urea_2M, urea_8M, water]
+    labels: ["2 M urea", "8 M urea", "neat water"]
+    xlabel: "t (ps)"
+    ylabel: "C(t)"
+    yscale: log
+    xlim: [0, 6]
+  - type: line
+    data: data/ir_spectra.csv
+    x: wavenumber
+    y: [OH_stretch, OD_stretch]
+    labels: [O–H, O–D]
+    xlabel: "Wavenumber (cm$^{-1}$)"
+    ylabel: "Absorbance (norm.)"
+    xlim: [3800, 2200]       # reversed axis, IR convention
+  - type: scatter
+    data: data/diffusion.csv
+    x: T_K
+    y: [D_urea, D_water]
+    yerr: [err_urea, err_water]
+    labels: [urea, water]
+    xlabel: "T (K)"
+    ylabel: "D (10$^{-9}$ m$^{2}$ s$^{-1}$)"
+  - type: spectrum2d
+    data: data/2dir_grid.csv     # first row = ω1, first column = ω3
+    xlabel: "$\\omega_1$ (cm$^{-1}$)"
+    ylabel: "$\\omega_3$ (cm$^{-1}$)"
+    clabel: "ΔOD (norm.)"
+    levels: 21
+    diagonal: true

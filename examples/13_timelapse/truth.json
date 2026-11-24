@@ -1,0 +1,51 @@
+{
+ "rate_px_per_min": 3.0,
+ "frames": [
+  {
+   "time_min": 0,
+   "thickness_px": 0.0,
+   "perpendicular_px": 0.0
+  },
+  {
+   "time_min": 10,
+   "thickness_px": 30.0,
+   "perpendicular_px": 29.904458356083747,
+   "arrow_px": [
+    30.0,
+    30.0,
+    30.0
+   ]
+  },
+  {
+   "time_min": 20,
+   "thickness_px": 60.0,
+   "perpendicular_px": 59.808916712167495,
+   "arrow_px": [
+    60.0,
+    60.0,
+    60.0
+   ]
+  },
+  {
+   "time_min": 30,
+   "thickness_px": 90.0,
+   "perpendicular_px": 89.71337506825125,
+   "arrow_px": [
+    90.0,
+    90.0,
+    90.0
+   ]
+  },
+  {
+   "time_min": 40,
+   "thickness_px": 120.0,
+   "perpendicular_px": 119.61783342433499,
+   "arrow_px": [
+    120.0,
+    120.0,
+    120.0
+   ]
+  }
+ ],
+ "note": "native image px; perpendicular = horizontal / sqrt(1+slope^2)"
+}
