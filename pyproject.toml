@@ -4,7 +4,7 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "resrijan"
-version = "0.4.0"
+version = "0.5.0"
 description = "Turn published scientific figures (PDF, EPS, SVG, PNG, JPG) back into data and redraw them in journal style"
 readme = "README.md"
 requires-python = ">=3.10"

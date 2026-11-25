@@ -1,6 +1,6 @@
 # Changelog
 
-## Unreleased
+## 0.5.0 — 2026-11-25
 * **Graphical interface** (`pip install "resrijan[gui]"`, then `resrijan gui` or `resrijan-gui`): a dark Qt interface with every command and option of the CLI.
   * Digitize, with a page preview, region drawing and tick clicking for manual calibration, and a results browser (replots, overlays, data, notes, combined figure, report).
   * Plot, with column and error-column pickers and a live preview.
