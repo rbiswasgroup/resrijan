@@ -13,6 +13,7 @@ from ... import cli
 from ..icons import icon
 from ..render import compose_preview
 from ..widgets import CommandBar, FormatChecks, ImagePanel, PathEdit, primary_button
+from ..textedit import ColorButton, SymbolButton, insert_text, script_buttons
 from .base import Page
 
 NEW_SPEC = """# Multi-panel figure: one entry per panel, laid out automatically.
@@ -59,6 +60,13 @@ class ComposePage(Page):
         self.name.setObjectName("Muted")
         self.name.setMinimumWidth(80)
         self.name.setMaximumWidth(420)
+        sym = SymbolButton(lambda: self.editor)
+        sup, sub = script_buttons(lambda: self.editor)
+        colour = ColorButton("Insert a colour code")
+        colour.setToolTip("Insert a colour code at the cursor, e.g. for  colors: [...]")
+        colour.changed.connect(lambda c: c and insert_text(self.editor, f'"{c}"'))
+        for w in (sym, sup, sub, colour):
+            bar.addWidget(w)
         bar.addWidget(self.name)
         bar.addStretch(1)
         self.auto = QCheckBox("Live preview")

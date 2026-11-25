@@ -62,6 +62,11 @@ def run_digitize(a):
             p.xlabel = a.xlabel
         if a.ylabel is not None:
             p.ylabel = a.ylabel
+        if getattr(a, "label_color", None) and p.box is not None:   # replot axis titles in this colour
+            ts = dict(getattr(p.box, "title_style", None) or {})
+            for k in ("x", "y"):
+                ts[k] = {**ts.get(k, {}), "color": a.label_color}
+            p.box.title_style = ts
     res = write_outputs(panels, out, template=a.template, formats=_formats(a.formats), width=a.width,
                         stem=Path(a.file).stem)
     return panels, res, out
@@ -98,7 +103,21 @@ def plot_spec(a) -> dict:
         spec["ylim"] = [float(v) for v in a.ylim.split(",")]
     if a.nm_per_px:
         spec["nm_per_px"] = a.nm_per_px
+    if getattr(a, "colors", None):
+        spec["colors"] = [c.strip() for c in a.colors.split(",")]
+    if getattr(a, "label_color", None):
+        for k in ("xlabel_style", "ylabel_style", "clabel_style"):
+            spec[k] = {"color": a.label_color}
     return spec
+
+
+def _check_colors(ap, a):
+    """Reject colours matplotlib does not know (before any work is done)."""
+    from matplotlib.colors import is_color_like
+    bad = [c for c in ((getattr(a, "colors", None) or "").split(",") + [getattr(a, "label_color", None) or ""])
+           if c.strip() and not is_color_like(c.strip())]
+    if bad:
+        ap.error("unknown colour(s): " + ", ".join(bad) + " (use names such as 'navy' or hex codes such as '#1b9e77')")
 
 
 def run_plot(a):
@@ -241,6 +260,7 @@ def build_parser() -> argparse.ArgumentParser:
     d.add_argument("-f", "--formats", default="pdf,svg,png", help="replot formats: pdf,svg,eps,png,tiff")
     d.add_argument("--xlabel", help="x-axis title for the replot (overrides what was read)")
     d.add_argument("--ylabel", help="y-axis title for the replot, e.g. 'C(t)' or 'k (s$^{-1}$)'")
+    d.add_argument("--label-color", help="colour of the replot's axis titles, e.g. navy or '#1f3a93' (default: as read)")
     d.add_argument("-v", "--verbose", action="store_true")
     d.add_argument("--strict", action="store_true", help="exit 1 if any panel has errors")
     d.set_defaults(fn=cmd_digitize)
@@ -254,6 +274,8 @@ def build_parser() -> argparse.ArgumentParser:
     p.add_argument("--xscale"); p.add_argument("--yscale"); p.add_argument("--xlim"); p.add_argument("--ylim")
     p.add_argument("--cmap"); p.add_argument("--column", help="column for histograms")
     p.add_argument("--nm-per-px", type=float, help="image pixel size for a scale bar")
+    p.add_argument("--colors", help="series colours in order, comma separated, e.g. '#1b9e77,,navy' (empty: the template's palette)")
+    p.add_argument("--label-color", help="colour of the axis and colour-bar titles")
     p.add_argument("-t", "--template", default="natchem")
     p.add_argument("--width", default="single")
     p.add_argument("-o", "--out")
@@ -282,7 +304,9 @@ def build_parser() -> argparse.ArgumentParser:
 
 
 def main(argv=None):
-    a = build_parser().parse_args(argv)
+    ap = build_parser()
+    a = ap.parse_args(argv)
+    _check_colors(ap, a)
     return a.fn(a) or 0
 
 

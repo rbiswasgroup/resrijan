@@ -32,7 +32,7 @@ Drop any file on the window and it goes to the right page:
    | Figure | resolution, read from vector/pixels | `--dpi`, `--prefer` |
    | Region and calibration | region, x/y calibration, image scale | `--region`, `--xcal`, `--ycal`, `--scale` |
    | Extraction | figure type, axis scales, max. series, particle sizing | `--type`, `--xscale`, `--yscale`, `--max-series`, `--no-particles` |
-   | Replot | journal, width, formats, axis titles | `-t`, `--width`, `-f`, `--xlabel`, `--ylabel` |
+   | Replot | journal, width, formats, axis titles, title colour | `-t`, `--width`, `-f`, `--xlabel`, `--ylabel`, `--label-color` |
    | Output | folder, strict mode | `-o`, `--strict` |
 
 3. Press **Digitize**. The **Results** tab lists the panels with their warnings and errors. For the selected panel it shows:
@@ -58,6 +58,25 @@ With a region, vector files are read from their pixels, which is less exact; the
 ![Plot](../images/gui_plot.png)
 
 Choose a data file and the columns appear. Tick the y columns to plot and pick an error column for each one; the GUI pairs `err_x` with `x` for you. Change the plot type, titles, scales, ranges and colour map, and the preview redraws as you type. **Save figure** writes the files (`resrijan plot`).
+
+## Titles: symbols, super- and subscripts, colours
+
+![Plot: a title with superscripts and series colours](../images/gui_plot_text.png)
+
+Every title box (axis titles in Digitize and Plot, the colour-bar title in Plot) has three buttons:
+
+- **Ω** opens a palette of Greek letters, mathematical symbols, units, arrows and common formulae (cm⁻¹, mol⁻¹, H₂O …). Click one to insert it at the cursor.
+- **x²** and **x₂** turn the selected text into a superscript or subscript (`$^{…}$`, `$_{…}$`). With nothing selected they insert an empty one with the cursor inside.
+
+Below the box, a preview shows the title as it will be printed. If a formula cannot be drawn (an unmatched `$` or brace), the preview says so in place of the title.
+
+![Symbol palette](../images/gui_symbols.png)
+
+Colours:
+
+- In Plot, each y column has a **colour** button: choose one of the colour-blind-safe presets or any colour; *automatic* keeps the journal's palette (`--colors`).
+- **Title colour** colours the axis titles, in Plot and in Digitize (`--label-color`). Digitize otherwise keeps the colour read from the figure.
+- In Compose, the toolbar has the same symbol and script buttons, and a colour button that inserts the colour's code into the spec.
 
 ## Compose
 

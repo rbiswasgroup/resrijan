@@ -36,6 +36,17 @@ resrijan plot 2dir_grid.csv --kind spectrum2d --xlabel '$\omega_1$ (cm$^{-1}$)' 
 
 `spectrum2d` draws filled contours with contour lines on top. For diverging data an odd number of bands is used, so that one band straddles zero and noise near zero shows no speckle.
 
+## Colours and title colour
+
+`--colors` sets the colour of each y series in order; leave an entry empty to keep the journal palette's colour. `--label-color` colours the axis and colour-bar titles (journals usually want black, the default). Any matplotlib colour works: names (`navy`), hex codes (`'#0072B2'`) or grey levels (`'0.3'`).
+
+```bash
+resrijan plot diffusion.csv --kind errorbar -x T_K -y D_urea,D_water --yerr err_urea,err_water \
+    --colors '#D55E00,#0072B2' --label-color navy -o output/diffusion_colours
+```
+
+`resrijan digitize` takes `--label-color` as well; without it, the replot keeps the title colour read from the figure.
+
 ## Kinds of plot
 
 | `--kind` | data |

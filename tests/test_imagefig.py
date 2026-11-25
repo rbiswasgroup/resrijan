@@ -67,3 +67,33 @@ def test_to_unit_and_nice_lengths():
     assert u == "µm" and abs(v - 2.5) < 1e-9
     assert imagefig._nice_len(4.7) == 5
     assert imagefig._nice_len(0.19) == pytest.approx(0.2)
+
+
+def _diamond(n=200):
+    yy, xx = np.mgrid[:n, :n]
+    return (abs(xx - n / 2) + abs(yy - n / 2)) < n * 0.35
+
+
+def test_unmask_restores_white_background_of_masked_bitmap():
+    """A bitmap drawn through a soft mask: raw pixels are black outside the shape, the page white."""
+    n = 200
+    shape = _diamond(n)
+    rng = np.random.default_rng(1)
+    raw = np.zeros((n, n, 3), np.uint8)                       # Cairo writes black under the mask
+    raw[shape] = (rng.integers(30, 140, (shape.sum(), 1)) * [1, 2, 3] // 3 + 40).astype(np.uint8)
+    page = np.full((n, n, 3), 255, np.uint8)
+    page[shape] = raw[shape]
+    out, masked = imagefig._unmask(page, (0, 0, n, n), raw)
+    assert masked
+    assert out[~shape].min() > 240                            # background now white, as on the page
+    assert np.abs(out[shape].astype(int) - raw[shape]).max() < 6
+
+
+def test_unmask_leaves_clipped_bitmap_alone():
+    """A rectangular clip is not a mask: the bitmap must come back unchanged."""
+    n = 200
+    raw = np.random.default_rng(2).integers(0, 255, (n, n, 3)).astype(np.uint8)
+    page = np.full((n, n, 3), 255, np.uint8)
+    page[20:150, 10:180] = raw[20:150, 10:180]
+    out, masked = imagefig._unmask(page, (0, 0, n, n), raw)
+    assert not masked and out is raw

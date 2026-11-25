@@ -242,8 +242,23 @@ def embedded_images(page: Page, min_px: int = 200):
                 pix = fitz.Pixmap(fitz.csRGB, pix)
             if pix.width < min_px and pix.height < min_px:
                 continue
+            alpha = None
+            smask = info[1]
+            if smask:            # transparency stored as a separate soft mask (AFM/3-D renderings, logos)
+                try:
+                    m = fitz.Pixmap(doc, smask)
+                    if (m.width, m.height) == (pix.width, pix.height) and m.n == 1:
+                        alpha = np.frombuffer(m.samples, dtype=np.uint8).reshape(m.height, m.width).astype(np.float32) / 255
+                except Exception:  # noqa: BLE001
+                    alpha = None
             arr = np.frombuffer(pix.samples, dtype=np.uint8).reshape(pix.height, pix.width, pix.n)
-            arr = arr[:, :, :3] if pix.n >= 3 else np.repeat(arr[:, :, :1], 3, axis=2)
+            if alpha is None and pix.alpha:
+                alpha = arr[:, :, -1].astype(np.float32) / 255
+            arr = arr[:, :, :3] if pix.n - pix.alpha >= 3 else np.repeat(arr[:, :, :1], 3, axis=2)
+            if alpha is not None and alpha.min() < 1:
+                # composite over the white page, as the PDF shows it
+                arr = np.clip(arr.astype(np.float32) * alpha[..., None] + 255 * (1 - alpha[..., None]) + 0.5,
+                              0, 255).astype(np.uint8)
             for r, m in rects:
                 if abs(m.b) > 1e-6 or abs(m.c) > 1e-6:
                     continue          # rotated/sheared placement: not usable as a data grid

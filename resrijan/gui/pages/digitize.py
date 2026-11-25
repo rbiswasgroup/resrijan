@@ -17,6 +17,7 @@ from ..render import preview_pages
 from ..theme import C
 from ..widgets import (CommandBar, CsvTable, FormatChecks, ImagePanel, PathEdit, TemplateCombo, WidthCombo, badge,
                        primary_button, tool_button)
+from ..textedit import ColorButton, MathLineEdit
 from .base import Page
 
 FIGURE_FILTER = ("Figures (*.pdf *.eps *.epsi *.epsf *.ps *.svg *.svgz *.png *.jpg *.jpeg *.tif *.tiff *.bmp *.gif *.webp);;"
@@ -123,12 +124,13 @@ class DigitizePage(Page):
         p.addRow("Width", self.width)
         self.formats = FormatChecks(default=P.get("formats"))
         p.addRow("Formats", self.formats)
-        self.xlabel = QLineEdit()
-        self.xlabel.setPlaceholderText("as read from the figure")
-        self.ylabel = QLineEdit()
-        self.ylabel.setPlaceholderText("as read, e.g. k (s$^{-1}$)")
+        self.xlabel = MathLineEdit("as read from the figure")
+        self.ylabel = MathLineEdit("as read, e.g. k (s$^{-1}$)")
         p.addRow("x title", self.xlabel)
         p.addRow("y title", self.ylabel)
+        self.label_color = ColorButton("As read from the figure")
+        self.label_color.changed.connect(self.update_command)
+        p.addRow("Title colour", self.row(self.label_color))
 
         # ── output
         o = self.group("Output", opts)
@@ -427,6 +429,8 @@ class DigitizePage(Page):
             a += ["--width", self.width.value()]
         if self.formats.value() != "pdf,svg,png":
             a += ["-f", self.formats.value()]
+        if self.label_color.value():
+            a += ["--label-color", self.label_color.value()]
         for flag, e in (("--xlabel", self.xlabel), ("--ylabel", self.ylabel)):
             if e.text().strip():
                 a += [flag, e.text().strip()]

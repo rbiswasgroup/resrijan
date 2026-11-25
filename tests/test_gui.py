@@ -140,3 +140,49 @@ def test_compose_preview_png():
     spec_path = EX / "11_compose_figure" / "figure_natchem.yaml"
     png = compose_preview(yaml.safe_load(spec_path.read_text()), str(spec_path.parent))
     assert png[:8] == b"\x89PNG\r\n\x1a\n"
+
+
+def test_plot_colours_and_title_colour_reach_the_cli(win, tmp_path):
+    p = win.pages["plot"]
+    p.auto.setChecked(False)
+    p.open_path(str(EX / "10_plot_your_data" / "diffusion.csv"))
+    p.kind.setCurrentText("errorbar")
+    p.ytab.cellWidget(1, 3).set_value("#0072B2", emit=True)
+    p.label_color.set_value("navy", emit=True)
+    a = p.argv()
+    assert a[a.index("--colors") + 1] == ",#0072B2"           # first series keeps the template colour
+    assert a[a.index("--label-color") + 1] == "navy"
+    p.ytab.cellWidget(1, 3).set_value("", emit=True)
+    p.label_color.set_value("", emit=True)
+    assert "--colors" not in p.argv() and "--label-color" not in p.argv()
+
+
+def test_super_and_subscript_buttons_wrap_selection():
+    QtWidgets.QApplication.instance() or QtWidgets.QApplication([])
+    from resrijan.gui.textedit import MathLineEdit, render_label, wrap_script
+    w = MathLineEdit()
+    w.setText("cm-1")
+    w.edit.setSelection(2, 2)
+    wrap_script(w.edit, "sup")
+    assert w.text() == "cm$^{-1}$" and w.is_valid()
+    w.setText("H2O")
+    w.edit.setSelection(1, 1)
+    wrap_script(w.edit, "sub")
+    assert w.text() == "H$_{2}$O"
+    w.setText("$\\alpha_{")
+    assert not w.is_valid()
+    with pytest.raises(ValueError):
+        render_label("$\\alpha_{$")
+    render_label("$\\Delta G$ (kJ mol$^{-1}$), ℏω, ±, µm")
+
+
+def test_colour_button_value_and_bad_colour_rejected():
+    QtWidgets.QApplication.instance() or QtWidgets.QApplication([])
+    from resrijan.cli import main
+    from resrijan.gui.textedit import ColorButton
+    b = ColorButton("Automatic")
+    assert b.value() == ""
+    b.set_value("#D55E00")
+    assert b.value().lower() == "#d55e00"
+    with pytest.raises(SystemExit):
+        main(["plot", str(EX / "10_plot_your_data" / "diffusion.csv"), "--colors", "notacolour"])

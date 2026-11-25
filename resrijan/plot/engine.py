@@ -155,8 +155,7 @@ def draw_panel(ax, spec: dict, tpl: T.Template, base: str = ".") -> Optional[Any
         style = spec.get("style", {})
         ax_pt = _axes_width_pt(ax)
         for k, s in enumerate(series):
-            col = s.get("color") or (spec.get("colors") or [None] * 99)[k] if (s.get("color") or spec.get("colors")) else None
-            col = col or tpl.palette[k % len(tpl.palette)]
+            col = _pick_color(spec.get("colors"), k) or s.get("color") or tpl.palette[k % len(tpl.palette)]
             kind = s.get("kind") or ("markers" if typ == "scatter" else "line")
             x, y = np.asarray(s["x"], float), np.asarray(s["y"], float)
             if spec.get("sort", kind == "line" and s.get("sort", True)) and kind == "line":
@@ -236,7 +235,7 @@ def draw_panel(ax, spec: dict, tpl: T.Template, base: str = ".") -> Optional[Any
                 cb.set_ticks(tv[(tv >= lo_ - 1e-9 * abs(hi_ - lo_)) & (tv <= hi_ + 1e-9 * abs(hi_ - lo_))])
             cb.ax.tick_params(width=tpl.axes["tick_width"], length=0.7 * tpl.axes["tick_length"])
             if spec.get("clabel"):
-                cb.set_label(spec["clabel"])
+                cb.set_label(spec["clabel"], **_title_kw(spec.get("clabel_style")))
     elif typ == "image":
         img = spec["z"] if "z" in spec else read_image(spec["data"])
         nm = spec.get("nm_per_px")
@@ -280,7 +279,7 @@ def draw_panel(ax, spec: dict, tpl: T.Template, base: str = ".") -> Optional[Any
     elif typ == "bar" and "values" in spec:
         cats = spec.get("categories") or [str(i + 1) for i in range(len(spec["values"]))]
         vals = np.asarray(spec["values"], float)
-        cols = spec.get("colors") or [tpl.palette[k % len(tpl.palette)] for k in range(len(vals))]
+        cols = [_pick_color(spec.get("colors"), k) or tpl.palette[k % len(tpl.palette)] for k in range(len(vals))]
         if spec.get("palette") == "template":
             cols = [tpl.palette[k % len(tpl.palette)] for k in range(len(vals))]
         err = spec.get("errors")
@@ -384,6 +383,15 @@ def draw_panel(ax, spec: dict, tpl: T.Template, base: str = ".") -> Optional[Any
     return ret
 
 
+def _pick_color(colors, k: int):
+    """k-th entry of a user colour list; None when the list is shorter or the entry is empty
+    (then the series keeps its own colour or the template's palette)."""
+    if not colors or k >= len(colors):
+        return None
+    c = str(colors[k]).strip()
+    return c or None
+
+
 def _title_kw(st) -> dict:
     """Axis-title colour/weight kept from the source."""
     st = st or {}
@@ -459,13 +467,25 @@ def _image_extras(ax, spec: dict, img, tpl):
     for t in spec.get("texts", []) or []:
         x0, y0, x1, y1 = t["box"]
         lines = t.get("lines") or [t["text"]]
-        ax.text(0.5 * (x0 + x1), 0.5 * (y0 + y1), "\n".join(lines), ha="center", va="center", zorder=4,
-                color=_c(t.get("color", "k")), fontsize=t.get("size", tpl.font["label"]),
+        txt = ax.text(0.5 * (x0 + x1), 0.5 * (y0 + y1), "\n".join(lines), ha="center", va="center", zorder=4,
+                color=_c(t.get("color", "k")), fontsize=t.get("size", _text_size(ax, t, tpl)),
                 fontweight="bold" if t.get("bold") else "normal", linespacing=1.0)
+        if t.get("size_frac") and "size" not in t:
+            txt._resrijan_size_frac = (t["size_frac"], tpl.font["label"])     # final size after the layout
     ax.set_xlim(-0.5, W - 0.5)
     ax.set_ylim(H - 0.5, -0.5)
     if spec.get("title"):
         ax.set_title(spec["title"], fontsize=tpl.font["label"], pad=2)
+
+
+def _text_size(ax, t: dict, tpl) -> float:
+    """Text on an image keeps its size relative to the image (``size_frac`` = line height / image
+    height in the source), within sensible limits; otherwise the template's label size."""
+    frac = t.get("size_frac")
+    if not frac:
+        return tpl.font["label"]
+    h_pt = ax.get_position().height * ax.figure.get_size_inches()[1] * 72
+    return float(np.clip(frac * h_pt / 1.16, 0.8 * tpl.font["label"], 4.0 * tpl.font["label"]))
 
 
 def _c(c):
@@ -550,8 +570,21 @@ def figure(panels: List[dict], template: str = "natchem", width: Union[str, floa
             labs = labels if isinstance(labels, list) else [tpl.label(i) for i in range(len(panels))]
             _panel_labels(fig, axes, labs, tpl)
         _span_titles(fig, axes, panels)
+        _fit_image_texts(fig)
     fig._resrijan_template = tpl
     return fig, axes, lay
+
+
+def _fit_image_texts(fig):
+    """Text on images keeps its source size relative to the image: set once the layout is final."""
+    texts = [(ax, t) for ax in fig.axes for t in ax.texts if hasattr(t, "_resrijan_size_frac")]
+    if not texts:
+        return
+    fig.canvas.draw()
+    for ax, t in texts:
+        frac, label = t._resrijan_size_frac
+        h_pt = ax.get_window_extent().height * 72 / fig.dpi
+        t.set_fontsize(float(np.clip(frac * h_pt / 1.16, 0.8 * label, 4.0 * label)))
 
 
 def _span_titles(fig, axes, panels):

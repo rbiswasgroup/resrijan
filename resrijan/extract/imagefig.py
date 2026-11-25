@@ -127,6 +127,64 @@ def looks_photographic(rgb: np.ndarray) -> bool:
     return white < 0.5 and float(np.median(hp)) >= 0.45
 
 
+def _unmask(page_rgb, place, img, text_boxes=()):
+    """Bitmaps drawn through a transparency mask (soft masks set in the graphics state, as Cairo
+    writes 3-D/AFM renderings): the raw pixels are black or random where the page shows white.
+    Returns (image as it appears, True) when such a mask is found, else (img, False).
+
+    A clip path leaves a *rectangle* of matching pixels; a mask leaves an irregular shape with
+    page-white holes inside its bounding box – only the latter is treated here."""
+    H, W = page_rgb.shape[:2]
+    ih, iw = img.shape[:2]
+    x0, y0, x1, y1 = place
+    if (x1 - x0) < 8 or (y1 - y0) < 8:
+        return img, False
+    # the part of the placement that is on the page, and the native pixels it covers
+    X0, Y0, X1, Y1 = max(0, int(np.floor(x0))), max(0, int(np.floor(y0))), min(W, int(np.ceil(x1))), min(H, int(np.ceil(y1)))
+    if X1 - X0 < 8 or Y1 - Y0 < 8:
+        return img, False
+    nx0 = int(round((X0 - x0) / (x1 - x0) * iw)); nx1 = min(iw, int(round((X1 - x0) / (x1 - x0) * iw)))
+    ny0 = int(round((Y0 - y0) / (y1 - y0) * ih)); ny1 = min(ih, int(round((Y1 - y0) / (y1 - y0) * ih)))
+    if nx1 - nx0 < 8 or ny1 - ny0 < 8:
+        return img, False
+    sub = cv2.resize(page_rgb[Y0:Y1, X0:X1].astype(np.float32), (nx1 - nx0, ny1 - ny0), interpolation=cv2.INTER_AREA)
+    full = img
+    img = img[ny0:ny1, nx0:nx1]
+    im = img.astype(np.float32)
+    diff = np.abs(sub - im).max(axis=2)
+    ok = diff < 24
+    white = sub.min(axis=2) > 240
+    rows = np.where(ok.mean(axis=1) > 0.02)[0]
+    cols = np.where(ok.mean(axis=0) > 0.02)[0]
+    if rows.size < 4 or cols.size < 4:
+        return full, False
+    r0, r1, c0, c1 = rows[0], rows[-1] + 1, cols[0], cols[-1] + 1
+    inside = np.zeros_like(ok)
+    inside[r0:r1, c0:c1] = True
+    holes = inside & ~ok & white                  # page white where the bitmap is not
+    if holes.sum() < 0.05 * inside.sum() or ok[inside].mean() > 0.9:
+        return full, False
+    if (~ok & ~white).mean() > 0.25:
+        return full, False                        # differences are not page-white: something else
+    # transparency from the rendering, assuming composition over white: page = a·img + (1−a)·255
+    num = ((255 - sub) * (255 - im)).sum(axis=2)
+    den = ((255 - im) ** 2).sum(axis=2)
+    a = np.where(den > 300, np.clip(num / np.maximum(den, 1e-6), 0, 1), 1.0)
+    a = np.where(ok, 1.0, a)                      # matching pixels keep their native values
+    # the page's own text drawn over a transparent part: black there is transparency, not image
+    for tb in text_boxes:
+        bx0 = int((tb[0] - x0) / (x1 - x0) * iw) - nx0 - 1; bx1 = int((tb[2] - x0) / (x1 - x0) * iw) - nx0 + 2
+        by0 = int((tb[1] - y0) / (y1 - y0) * ih) - ny0 - 1; by1 = int((tb[3] - y0) / (y1 - y0) * ih) - ny0 + 2
+        bx0, by0 = max(0, bx0), max(0, by0)
+        if bx1 <= bx0 or by1 <= by0:
+            continue
+        blk = im[by0:by1, bx0:bx1].max(axis=2) <= 8
+        a[by0:by1, bx0:bx1][blk] = 0.0
+    out = full.copy()
+    out[ny0:ny1, nx0:nx1] = np.clip(im * a[..., None] + 255 * (1 - a[..., None]) + 0.5, 0, 255).astype(np.uint8)
+    return out, True
+
+
 def _visible_part(page_rgb, place, img):
     """Which native pixels of a placed bitmap are actually visible on the rendered page
     (figures often clip photos with a clip path). Returns (x0, y0, x1, y1) or None."""
@@ -289,6 +347,18 @@ def find_frames(page, rgb: np.ndarray, embedded=None, exclude=()) -> List[Frame]
     frames: List[Frame] = []
     H, W = rgb.shape[:2]
     off = page.meta.get("offset_px", (0, 0)) if page is not None else (0, 0)
+    text_boxes = []
+    if embedded and page is not None and getattr(page, "pdf_page", None) is not None:
+        try:
+            for b in page.pdf_page.get_text("dict").get("blocks", []):
+                for ln in b.get("lines", []):
+                    for sp in ln.get("spans", []):
+                        if sp.get("text", "").strip():
+                            x0_, y0_, x1_, y1_ = sp["bbox"]
+                            text_boxes.append((x0_ * page.scale - off[0], y0_ * page.scale - off[1],
+                                               x1_ * page.scale - off[0], y1_ * page.scale - off[1]))
+        except Exception:  # noqa: BLE001
+            text_boxes = []
     if embedded:
         for im in embedded:
             r = im["rect"]
@@ -308,7 +378,11 @@ def find_frames(page, rgb: np.ndarray, embedded=None, exclude=()) -> List[Frame]
             ox, oy = r[0] * page.scale - off[0], r[1] * page.scale - off[1]
             cx0, cy0 = int(max(0, (box[0] - ox) * fx)), int(max(0, (box[1] - oy) * fy))
             cx1, cy1 = int(min(iw, np.ceil((box[2] - ox) * fx))), int(min(ih, np.ceil((box[3] - oy) * fy)))
-            v = _visible_part(rgb, (ox, oy, ox + iw / fx, oy + ih / fy), img)
+            img, masked = _unmask(rgb, (ox, oy, ox + iw / fx, oy + ih / fy), img, text_boxes)
+            if masked:      # a row/column cut by the page edge is not part of the picture
+                cx1 = int(min(iw, np.floor((box[2] - ox) * fx)))
+                cy1 = int(min(ih, np.floor((box[3] - oy) * fy)))
+            v = None if masked else _visible_part(rgb, (ox, oy, ox + iw / fx, oy + ih / fy), img)
             if v is not None:
                 cx0, cy0, cx1, cy1 = max(cx0, v[0]), max(cy0, v[1]), min(cx1, v[2]), min(cy1, v[3])
             if cx1 - cx0 < 8 or cy1 - cy0 < 8:
@@ -316,6 +390,10 @@ def find_frames(page, rgb: np.ndarray, embedded=None, exclude=()) -> List[Frame]
             fr = Frame(box, img[cy0:cy1, cx0:cx1].copy(), fx, fy, "vector-image", tuple(r))
             fr.box = (ox + cx0 / fx, oy + cy0 / fy, ox + cx1 / fx, oy + cy1 / fy)
             fr.full_rgb, fr.crop_off = img, (cx0, cy0)
+            if masked:
+                fr.notes.append({"level": "info", "code": "masked",
+                                 "msg": "The bitmap is drawn through a transparency mask; its transparent background "
+                                        "is restored as the white page shows it."})
             if (cx0, cy0, cx1, cy1) != (0, 0, iw, ih):
                 fr.notes.append({"level": "info", "code": "clipped",
                                  "msg": f"Only native px ({cx0}, {cy0})–({cx1}, {cy1}) of the {iw}×{ih} bitmap are visible "

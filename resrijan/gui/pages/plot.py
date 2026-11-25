@@ -13,6 +13,7 @@ from ... import cli
 from ..icons import icon
 from ..render import plot_preview
 from ..widgets import CommandBar, FormatChecks, ImagePanel, PathEdit, TemplateCombo, WidthCombo, primary_button
+from ..textedit import ColorButton, MathLineEdit
 from .base import Page
 
 DATA_FILTER = ("Data (*.csv *.tsv *.txt *.dat *.npz *.png *.tif *.tiff *.jpg);;All files (*)")
@@ -46,8 +47,8 @@ class PlotPage(Page):
         self.c_group = c.parentWidget()
         self.x = QComboBox()
         c.addRow("x", self.x)
-        self.ytab = QTableWidget(0, 3)
-        self.ytab.setHorizontalHeaderLabels(["Plot", "y column", "error bars"])
+        self.ytab = QTableWidget(0, 4)
+        self.ytab.setHorizontalHeaderLabels(["Plot", "y column", "error bars", "colour"])
         self.ytab.verticalHeader().setVisible(False)
         self.ytab.horizontalHeader().setStretchLastSection(True)
         self.ytab.setMinimumHeight(130)
@@ -57,13 +58,16 @@ class PlotPage(Page):
         c.addRow("Histogram of", self.column)
 
         a = self.group("Axes and labels", opts)
-        self.xlabel, self.ylabel, self.clabel = QLineEdit(), QLineEdit(), QLineEdit()
+        self.xlabel, self.ylabel, self.clabel = MathLineEdit(), MathLineEdit(), MathLineEdit()
         self.xlabel.setPlaceholderText("e.g. t (ps)")
         self.ylabel.setPlaceholderText("e.g. C(t) or k (s$^{-1}$)")
         self.clabel.setPlaceholderText("colour-bar title (maps)")
         a.addRow("x title", self.xlabel)
         a.addRow("y title", self.ylabel)
         a.addRow("Colour bar", self.clabel)
+        self.label_color = ColorButton("Black (journal style)")
+        self.label_color.changed.connect(self.changed)
+        a.addRow("Title colour", self.row(self.label_color))
         self.xscale, self.yscale = QComboBox(), QComboBox()
         for cb in (self.xscale, self.yscale):
             cb.addItem("default", "")
@@ -184,9 +188,12 @@ class PlotPage(Page):
                 err.setCurrentText(guess)
             err.currentIndexChanged.connect(self.changed)
             self.ytab.setCellWidget(i, 2, err)
+            col = ColorButton()
+            col.changed.connect(self.changed)
+            self.ytab.setCellWidget(i, 3, col)
         self.ytab.blockSignals(False)
-        self.ytab.resizeColumnToContents(0)
-        self.ytab.resizeColumnToContents(1)
+        for c in (0, 1, 3):
+            self.ytab.resizeColumnToContents(c)
 
     def _kind_changed(self, kind: str):
         table = kind in TABLE_KINDS
@@ -199,6 +206,10 @@ class PlotPage(Page):
         self.changed()
 
     # ───────────────────────── command ─────────────────────────
+    def _colors(self):
+        return [self.ytab.cellWidget(r, 3).value() for r in range(self.ytab.rowCount())
+                if self.ytab.item(r, 0).checkState() == Qt.Checked]
+
     def _y_and_err(self):
         ys, errs = [], []
         for r in range(self.ytab.rowCount()):
@@ -225,6 +236,9 @@ class PlotPage(Page):
                     a += ["-y", ",".join(ys)]
                 if any(errs):
                     a += ["--yerr", ",".join(errs)]
+                cols = self._colors()
+                if any(cols):
+                    a += ["--colors", ",".join(cols)]
         for flag, e in (("--xlabel", self.xlabel), ("--ylabel", self.ylabel), ("--clabel", self.clabel),
                         ("--xlim", self.xlim), ("--ylim", self.ylim)):
             if e.isEnabled() and e.text().strip():
@@ -236,6 +250,8 @@ class PlotPage(Page):
             a += ["--cmap", self.cmap.currentText().strip()]
         if self.nm.isEnabled() and self.nm.value() > 0:
             a += ["--nm-per-px", f"{self.nm.value():g}"]
+        if self.label_color.value():
+            a += ["--label-color", self.label_color.value()]
         if self.template.value() and self.template.value() != "natchem":
             a += ["-t", self.template.value()]
         if self.width.value() != "single":

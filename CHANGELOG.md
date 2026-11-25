@@ -9,6 +9,9 @@
   * Inspect, and Settings (defaults, output folder, application-menu entry for Linux).
   * Each page shows the equivalent `resrijan` command; the GUI runs the CLI's own parser and functions, so both give identical results.
 * CLI: commands are split into reusable `run_*` functions and `build_parser()`; new `gui` command.
+* GUI title boxes: a palette of Greek letters, mathematical symbols and units; superscript and subscript buttons; a live preview that flags formulas that cannot be drawn.
+* Colours: a colour per series in Plot and a title colour in Plot and Digitize (CLI: `plot --colors`, `plot/digitize --label-color`; invalid colours are refused with a clear message).
+* Image figures: bitmaps drawn through a transparency mask (3-D AFM renderings written by Cairo) keep their white background instead of turning black, and are no longer cropped; text placed over an image keeps its size relative to the image.
 * Tutorial 18 (the graphical interface).
 
 ## 0.4.0 — 2026-11-24
