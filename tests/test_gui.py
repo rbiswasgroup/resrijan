@@ -264,3 +264,43 @@ def test_project_round_trip(win, tmp_path):
     assert after["plot"] == before["plot"] and after["analyze"] == before["analyze"]
     assert w2.pages["plot"].argv() == p.argv()
     w2.close()
+
+
+def test_fit_page_presets_bounds_and_range(win, tmp_path):
+    import numpy as np
+    t = np.arange(0, 100.5, 0.5)
+    f = tmp_path / "msd.csv"
+    f.write_text("t,msd\n" + "\n".join(f"{a},{6 * 0.3 * a + 0.1}" for a in t))
+    p = win.pages["fit"]
+    win.show_page("fit")
+    p.auto.setChecked(False)
+    p.open_path(str(f))
+    p.preset.setCurrentIndex(p.preset.findData("msd3d"))
+    assert [r["name"] for r in p._rows()] == ["D", "c"] and p._rows()[0]["lo"] == "0"
+    p.preview()
+    assert "0.3" in p.ptab.item(0, 5).text()
+    x0, x1, lo, hi, _ = p._map
+    p.pick.setChecked(True)
+    for v in (10, 90):
+        p._picked(x0 + (v - lo) / (hi - lo) * (x1 - x0), 3)
+    a = p.argv()
+    assert a[a.index("-m") + 1] == "msd3d" and abs(float(a[a.index("--range") + 1].split(":")[0]) - 10) < 1
+    p.expr.setText("6*D*x")                      # own formula: the preset is dropped, the table follows
+    assert p.preset.currentData() == "" and [r["name"] for r in p._rows()] == ["D"]
+    p.out.setText(str(tmp_path / "res"))
+    p.formats.set_value("png")
+    p.save()
+    assert (tmp_path / "res_params.csv").exists()
+
+
+def test_analyze_page_deconvolution_options(win, tmp_path):
+    p = win.pages["analyze"]
+    p.pk_mode.setCurrentIndex(p.pk_mode.findData("components"))
+    p.ncomp.setValue(4)
+    p.fr_lo.setText("1500")
+    p.fr_hi.setText("1700")
+    p.cwin.setValue(10)
+    p.w_hi.setText("40")
+    a = p.argv()
+    assert a[a.index("--components") + 1] == "4" and a[a.index("--fit-range") + 1] == "1500:1700"
+    assert a[a.index("--center-window") + 1] == "10" and a[a.index("--fwhm-range") + 1] == "0:40"

@@ -96,11 +96,17 @@ class AnalyzePage(Page):
             self.norm.addItem(t, v)
         p.addRow("Normalise", self.norm)
 
-        k = self.group("Peaks", opts)
+        k = self.group("Peaks and deconvolution", opts)
         self.pk_mode = QComboBox()
-        for t, v in (("none", ""), ("find automatically", "auto"), ("at these positions", "manual")):
+        for t, v in (("none", ""), ("find maxima", "auto"), ("find maxima and shoulders (2nd derivative)", "shoulders"),
+                     ("deconvolve into N components", "components"), ("at these positions", "manual")):
             self.pk_mode.addItem(t, v)
+        self.pk_mode.setToolTip("Shoulders and N components find overlapping (merged) bands from minima of the "
+                                "second derivative")
         k.addRow("Fit peaks", self.pk_mode)
+        self.ncomp = _spin(1, 30, 3)
+        self.ncomp.setSuffix(" components")
+        k.addRow("Number", self.ncomp)
         self.pk_list = QLineEdit()
         self.pk_list.setPlaceholderText("e.g. 1450, 1600 – or click on the preview")
         k.addRow("Positions", self.pk_list)
@@ -112,6 +118,19 @@ class AnalyzePage(Page):
         self.prom.setToolTip("Automatic search: a peak must rise this fraction of the data range above its surroundings")
         self.maxp = _spin(1, 50, 10)
         k.addRow("Search", self.row(QLabel("prominence"), self.prom, QLabel("max."), self.maxp))
+        self.fr_lo, self.fr_hi = QLineEdit(), QLineEdit()
+        self.fr_lo.setPlaceholderText("all")
+        self.fr_hi.setPlaceholderText("all")
+        self.fr_lo.setToolTip("Fit the peaks only over this x range (the rest is kept and shown)")
+        k.addRow("Fit range", self.row(self.fr_lo, QLabel("–"), self.fr_hi, stretch=0))
+        self.cwin = _spin(0, 1e6, 0, dec=3, step=1.0, special="free")
+        self.cwin.setToolTip("Each centre may move at most this far from its starting position (0: free)")
+        self.w_lo, self.w_hi = QLineEdit(), QLineEdit()
+        self.w_lo.setPlaceholderText("min")
+        self.w_hi.setPlaceholderText("max")
+        self.w_lo.setToolTip("Limits for every peak width (FWHM), in x units")
+        k.addRow("Centre ±", self.cwin)
+        k.addRow("FWHM", self.row(self.w_lo, QLabel("–"), self.w_hi, stretch=0))
         self.areas = QLineEdit()
         self.areas.setPlaceholderText("LO:HI, LO:HI  e.g. 1400:1500")
         k.addRow("Areas", self.areas)
@@ -178,12 +197,13 @@ class AnalyzePage(Page):
         self._timer.setSingleShot(True)
         self._timer.setInterval(600)
         self._timer.timeout.connect(self.preview)
-        for e in (self.crop_lo, self.crop_hi, self.b_lam, self.b_p, self.pk_list, self.areas, self.xlabel, self.ylabel):
+        for e in (self.crop_lo, self.crop_hi, self.b_lam, self.b_p, self.pk_list, self.areas, self.xlabel, self.ylabel,
+                  self.fr_lo, self.fr_hi, self.w_lo, self.w_hi):
             e.textChanged.connect(self.changed)
         for cb in (self.series, self.u_from, self.u_to, self.smooth, self.base, self.norm, self.pk_mode, self.shape,
                    self.template, self.width):
             cb.currentIndexChanged.connect(self.changed)
-        for sp in (self.sm_win, self.sm_ord, self.b_ord, self.prom, self.maxp):
+        for sp in (self.sm_win, self.sm_ord, self.b_ord, self.prom, self.maxp, self.ncomp, self.cwin):
             sp.valueChanged.connect(self.changed)
         self.jacobian.toggled.connect(self.changed)
         self.width.editTextChanged.connect(self.changed)
@@ -244,10 +264,13 @@ class AnalyzePage(Page):
         self.sm_win.setEnabled(bool(sm))
         self.sm_ord.setEnabled(sm == "savgol")
         m = self.pk_mode.currentData()
-        self.pk_list.setEnabled(m != "auto")
-        self.shape.setEnabled(bool(m) or bool(self.pk_list.text().strip()))
-        self.prom.setEnabled(m == "auto")
-        self.maxp.setEnabled(m == "auto")
+        self.pk_list.setEnabled(m in ("", "manual"))
+        on = bool(m) or bool(self.pk_list.text().strip())
+        for w in (self.shape, self.fr_lo, self.fr_hi, self.cwin, self.w_lo, self.w_hi):
+            w.setEnabled(on)
+        self.prom.setEnabled(m in ("auto", "shoulders", "components"))
+        self.maxp.setEnabled(m in ("auto", "shoulders"))
+        self.ncomp.setEnabled(m == "components")
         self.jacobian.setEnabled(bool(self.u_from.currentData() and self.u_to.currentData()))
 
     # ───────────────────────── command ─────────────────────────
@@ -279,16 +302,27 @@ class AnalyzePage(Page):
         if self.norm.currentData():
             a += ["--normalize", self.norm.currentData()]
         m = self.pk_mode.currentData()
-        if m == "auto":
-            a += ["--peaks", "auto"]
-            if abs(self.prom.value() - 0.05) > 1e-9:
-                a += ["--prominence", f"{self.prom.value():g}"]
+        if m in ("auto", "shoulders"):
+            a += ["--peaks", m]
             if self.maxp.value() != 10:
                 a += ["--max-peaks", str(self.maxp.value())]
+        elif m == "components":
+            a += ["--components", str(self.ncomp.value())]
         elif m == "manual" and self.pk_list.text().strip():
             a += ["--peaks", ",".join(t.strip() for t in self.pk_list.text().split(",") if t.strip())]
-        if (m or self.pk_list.text().strip()) and self.shape.currentData() != "voigt":
-            a += ["--shape", self.shape.currentData()]
+        if m in ("auto", "shoulders", "components") and abs(self.prom.value() - 0.05) > 1e-9:
+            a += ["--prominence", f"{self.prom.value():g}"]
+        if m or self.pk_list.text().strip():
+            if self.shape.currentData() != "voigt":
+                a += ["--shape", self.shape.currentData()]
+            lo, hi = self.fr_lo.text().strip(), self.fr_hi.text().strip()
+            if lo and hi:
+                a += ["--fit-range", f"{lo}:{hi}"]
+            if self.cwin.value() > 0:
+                a += ["--center-window", f"{self.cwin.value():g}"]
+            lo, hi = self.w_lo.text().strip(), self.w_hi.text().strip()
+            if lo or hi:
+                a += ["--fwhm-range", f"{lo or 0}:{hi or 1e12}"]
         if self.areas.text().strip():
             a += ["--area", ",".join(t.strip() for t in self.areas.text().split(",") if t.strip())]
         for flag, e in (("--xlabel", self.xlabel), ("--ylabel", self.ylabel)):
@@ -349,7 +383,7 @@ class AnalyzePage(Page):
     def _fill_table(self, an):
         from ...analysis import _fmt, peak_table
         rows = peak_table(an)
-        heads = ["peak", "centre", "FWHM", "height", "area"]
+        heads = ["peak", "centre", "FWHM", "height", "area", "area %"]
         if rows and "eta" in rows[0]:
             heads.append("Lorentz. fraction")
         areas = an.areas
@@ -359,7 +393,8 @@ class AnalyzePage(Page):
         self.table.setRowCount(len(rows) + len(areas))
         for i, r in enumerate(rows):
             vals = [str(r["peak"]), _fmt(r["center"], r["center_err"]), _fmt(r["fwhm"], r["fwhm_err"]),
-                    _fmt(r["height"], r["height_err"]), _fmt(r["area"], r["area_err"])]
+                    _fmt(r["height"], r["height_err"]), _fmt(r["area"], r["area_err"]),
+                    _fmt(r["area_pct"], r["area_pct_err"])]
             if "eta" in r:
                 vals.append(_fmt(r["eta"], r["eta_err"]))
             for c, v in enumerate(vals):
@@ -409,7 +444,9 @@ class AnalyzePage(Page):
                 "lam": self.b_lam.text(), "p": self.b_p.text(), "b_ord": self.b_ord.value(),
                 "normalize": self.norm.currentData(), "peaks_mode": self.pk_mode.currentData(),
                 "peaks": self.pk_list.text(), "shape": self.shape.currentData(), "prominence": self.prom.value(),
-                "max_peaks": self.maxp.value(), "areas": self.areas.text(), "xlabel": self.xlabel.text(),
+                "max_peaks": self.maxp.value(), "components": self.ncomp.value(),
+                "fit_range": [self.fr_lo.text(), self.fr_hi.text()], "center_window": self.cwin.value(),
+                "fwhm": [self.w_lo.text(), self.w_hi.text()], "areas": self.areas.text(), "xlabel": self.xlabel.text(),
                 "ylabel": self.ylabel.text(), "template": self.template.value(), "width": self.width.value(),
                 "formats": self.formats.value(), "out": self.out.text()}
 
@@ -437,6 +474,14 @@ class AnalyzePage(Page):
         set_combo(self.shape, s.get("shape", "voigt"))
         self.prom.setValue(float(s.get("prominence", 0.05)))
         self.maxp.setValue(int(s.get("max_peaks", 10)))
+        self.ncomp.setValue(int(s.get("components", 3)))
+        lo, hi = (s.get("fit_range") or ["", ""])[:2]
+        self.fr_lo.setText(lo)
+        self.fr_hi.setText(hi)
+        self.cwin.setValue(float(s.get("center_window", 0)))
+        lo, hi = (s.get("fwhm") or ["", ""])[:2]
+        self.w_lo.setText(lo)
+        self.w_hi.setText(hi)
         self.areas.setText(s.get("areas", ""))
         self.xlabel.setText(s.get("xlabel", ""))
         self.ylabel.setText(s.get("ylabel", ""))

@@ -42,6 +42,40 @@ How close is it? The spectrum was made with these bands:
 
 Centres are within a few error bars. Heights come out about 4 % low and the second band looks partly Gaussian: smoothing narrows sharp bands slightly, and the ALS baseline runs a little under the noise. Use less smoothing (or none) for quantitative widths and heights.
 
+## Deconvolution of overlapping bands
+
+Merged bands – an amide I band, overlapping vibronic bands, a shoulder on a peak – are split into components with `--components N` or `--peaks shoulders`. Hidden bands rarely give a maximum of their own, but each one gives a minimum in the (smoothed) second derivative; ReSrijan starts the components there and fits them all together.
+
+[`amide_band.csv`](../../examples/15_analysis/amide_band.csv) is a simulated amide I band made of three Gaussians (centres 1630, 1654, 1682 cm⁻¹; FWHM 22, 24, 18; heights 0.42, 0.80, 0.30):
+
+```bash
+resrijan analyze amide_band.csv --baseline ends --components 3 --shape gauss --fwhm-range 5:40 \
+    --xlabel 'Wavenumber (cm$^{-1}$)' --ylabel Absorbance -o output/amide
+```
+
+```
+absorbance: baseline subtracted (ends); 4 peaks and shoulders (second derivative) found; 3 component(s) placed; 3 gauss peak(s) fitted, R² = 0.9996
+  peak 1: centre 1630.05 ± 0.12, FWHM 21.98 ± 0.18, height 0.4236 ± 0.0028, area 9.91 ± 0.11 (27.52 ± 0.29 %)
+  peak 2: centre 1653.998 ± 0.058, FWHM 23.87 ± 0.16, height 0.8000 ± 0.0016, area 20.33 ± 0.14 (56.45 ± 0.40 %)
+  peak 3: centre 1681.937 ± 0.065, FWHM 18.07 ± 0.15, height 0.3002 ± 0.0015, area 5.774 ± 0.055 (16.03 ± 0.15 %)
+```
+
+![Three-component deconvolution](../images/deconvolution.png)
+
+Each component's share of the total area (with its error) is given in percent – the usual way to report secondary-structure fractions.
+
+| option | effect |
+|---|---|
+| `--peaks shoulders` | start a component at every maximum *and* shoulder (second-derivative minima) |
+| `--components N` | exactly N components: the strongest second-derivative minima, plus the middle of the widest gaps if fewer are found |
+| `--peaks 1630,1654,1682` | start positions you know (e.g. from literature) |
+| `--fit-range LO:HI` | fit only this part (the rest of the spectrum is kept and drawn) |
+| `--center-window W` | each centre may move at most W from its start |
+| `--fwhm-range LO:HI` | limits for every width |
+| `--shape` | `gauss`, `lorentz` or `voigt` (pseudo-Voigt: the Lorentzian fraction is fitted per component) |
+
+Deconvolution is only as good as the model: choose the number of components from the second derivative (or prior knowledge), keep widths physically sensible with `--fwhm-range`, and check that the residuals show no structure.
+
 ## Output files
 
 | file | content |

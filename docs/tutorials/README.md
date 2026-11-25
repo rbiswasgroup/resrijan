@@ -23,7 +23,8 @@ Each tutorial uses a ready-made file in [`examples/`](../../examples) and shows 
 | 16 | [Image figures](16-image-figures.md) | `hrtem_insets.pdf`, `timelapse.svg` | HRTEM insets, d-spacing check, time-lapse series, `--scale` |
 | 17 | [Tricky axes](17-tricky-axes.md) | `examples/14_tricky_axes/*.pdf` | parity plots, stacked spectra, unnumbered axes, contour pairs, point labels |
 | 18 | [The graphical interface](18-gui.md) | any | every command in a window: previews, clicking ticks, data editor, projects |
-| 19 | [Analyse spectra and curves](19-analysis.md) | `examples/15_analysis/ir_spectrum.csv` | baseline, smoothing, unit conversion, peak fitting with errors, areas |
+| 19 | [Analyse spectra and curves](19-analysis.md) | `examples/15_analysis/*.csv` | baseline, smoothing, unit conversion, peak fitting with errors, deconvolution, areas |
+| 20 | [Curve fitting](20-curve-fitting.md) | `examples/16_curve_fit/*.csv` | time constants from correlation functions, D from MSD, your own formulas with bounds |
 
 To regenerate every output and picture used here:
 

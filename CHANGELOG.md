@@ -12,6 +12,14 @@
 * Areas over x ranges. Outputs: processed data, peak table, JSON summary, and a journal-style figure with components and residuals.
 * GUI: live preview, peak table with errors, and peaks placed by clicking on the preview.
 
+* Deconvolution of overlapping bands: `--peaks shoulders` (second-derivative minima find hidden bands), `--components N`, `--fit-range`, `--center-window`, `--fwhm-range`; each component's share of the area (%) with its error. GUI: the same in the Analyze page.
+
+**Curve fitting** (`resrijan fit`, GUI page **Fit**, `resrijan.curvefit`)
+* Any formula in x (checked before use) or a preset: 1–3 exponentials, stretched exponential (KWW), exponential + KWW, damped oscillation, MSD (1-D, 2-D, 3-D, anomalous, ballistic start), linear, quadratic, power law, Arrhenius, VFT, Gaussian, Lorentzian, logistic, Hill.
+* Starting values, lower/upper bounds and fixed constants per parameter; full or custom fit range; weights from an uncertainty column; several series fitted at once; multi-start bounded least squares.
+* Standard errors, R², reduced χ², flags for constants that end at a bound; derived quantities (e.g. ⟨τ⟩ = (τ/β)Γ(1/β), D in other units) with errors propagated through the covariance matrix.
+* Outputs: parameter table (one row per series), fitted curves, JSON with covariances, and a figure with residuals (fit range shaded). GUI: parameter table, fit range set by clicking, live preview.
+
 **Styling**
 * `plot`: `--linestyles`, `--markers`, `--linewidth`, `--markersize`, `--legend` (any position, `outside right`, `outside top`, `none`), `--legend-frame`, `--legend-cols`, `--grid`, `--font`, `--font-scale`, `--line-scale`, `--text` and `--arrow` labels (data or axes coordinates, optional colour).
 * Compose specs: the same keys per panel, and `font`, `font_scale`, `line_scale` for the figure.
@@ -22,7 +30,7 @@
 
 **Other**
 * Data files with a `kind` column (`markers`/`line`) are plotted with markers or lines accordingly.
-* Tutorial 19 (analysis) and example `15_analysis`; tutorials 12 and 18 extended.
+* Tutorials 19 (analysis, deconvolution) and 20 (curve fitting), examples `15_analysis` and `16_curve_fit`; tutorials 12 and 18 extended.
 
 ## 0.5.0 — 2026-11-25
 * **Graphical interface** (`pip install "resrijan[gui]"`, then `resrijan gui` or `resrijan-gui`): a dark Qt interface with every command and option of the CLI.

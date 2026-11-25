@@ -40,6 +40,27 @@ def analysis_preview(args, dpi: float = 160):
     return figure_png(fig, dpi), an, (bb.x0 * k, bb.x1 * k, lo, hi)
 
 
+def fit_preview(args, dpi: float = 160):
+    """Fit every selected series of `resrijan fit …` (parsed args) without writing files.
+    Returns (png, results, (plot-area left px, right px, x at left, x at right, log x))."""
+    import copy
+    from ..cli import fit_inputs, load_fit_series
+    from ..curvefit import fit, fit_figure
+    expr, params, derived, rng = fit_inputs(args)
+    results = []
+    for name, x, y, sig in load_fit_series(args):
+        r = fit(x, y, expr, copy.deepcopy(params), x_range=rng, sigma=sig, derived=derived, n_starts=args.starts,
+                absolute_sigma=args.absolute_sigma)
+        results.append((name, r, x, y))
+    fig = fit_figure(results, template=args.template, width=args.width, xlabel=args.xlabel, ylabel=args.ylabel,
+                     xscale=args.xscale, yscale=args.yscale)
+    fig.canvas.draw()
+    ax = fig.axes[0]
+    bb, k = ax.get_window_extent(), dpi / fig.dpi
+    lo, hi = ax.get_xlim()
+    return figure_png(fig, dpi), results, (bb.x0 * k, bb.x1 * k, lo, hi, args.xscale == "log")
+
+
 def compose_preview(spec: dict, base: str, dpi: float = 130) -> bytes:
     """Preview of a compose YAML spec (already parsed) without writing files."""
     from ..plot.engine import figure

@@ -15,7 +15,8 @@ Each folder holds an input figure drawn from known data and is used by one tutor
 | `09_multipanel_page` | `multipanel_page.pdf` | [Multi-panel pages](../docs/tutorials/09-multipanel-pages.md) |
 | `10_plot_your_data` | `correlation.csv`, `diffusion.csv`, `2dir_grid.csv` | [Plot your own data](../docs/tutorials/12-plot-your-data.md) |
 | `11_compose_figure` | `figure_natchem.yaml` + `data/` | [Compose a multi-panel figure](../docs/tutorials/13-compose-figures.md) |
-| `15_analysis` | `ir_spectrum.csv` | [Analyse spectra and curves](../docs/tutorials/19-analysis.md) |
+| `15_analysis` | `ir_spectrum.csv`, `amide_band.csv` | [Analyse spectra and curves](../docs/tutorials/19-analysis.md) |
+| `16_curve_fit` | `correlation.csv`, `msd.csv` | [Curve fitting](../docs/tutorials/20-curve-fitting.md) |
 
 Run everything and refresh the tutorial pictures with:
 

@@ -15,6 +15,7 @@ from .jobs import JobRunner
 from .pages.analyze import AnalyzePage
 from .pages.compose import ComposePage
 from .pages.digitize import DigitizePage
+from .pages.fit import FitPage
 from .pages.inspect import InspectPage
 from .pages.plot import PlotPage
 from .pages.settings import SettingsPage
@@ -62,7 +63,8 @@ class MainWindow(QMainWindow):
         # pages
         self.pages = {}
         self.stack = QStackedWidget()
-        for key, cls in (("digitize", DigitizePage), ("plot", PlotPage), ("analyze", AnalyzePage), ("compose", ComposePage),
+        for key, cls in (("digitize", DigitizePage), ("plot", PlotPage), ("analyze", AnalyzePage), ("fit", FitPage),
+                         ("compose", ComposePage),
                          ("templates", TemplatesPage), ("inspect", InspectPage), ("settings", SettingsPage)):
             page = cls(self)
             self.pages[key] = page

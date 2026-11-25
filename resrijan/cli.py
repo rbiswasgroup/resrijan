@@ -3,6 +3,7 @@
   digitize  FILE      extract data from figures (PDF/EPS/PS/SVG/PNG/JPG/TIFF) and replot them
   plot      DATA      plot a data file with a journal template
   analyze   DATA      baseline, smoothing, normalisation, unit conversion, peak fitting, areas
+  fit       DATA      fit any model (formula or preset) with bounds, fixed values and a fit range
   compose   SPEC.yaml build a multi-panel figure from a YAML description
   templates           list journal templates
   inspect   FILE      show pages, embedded images and a pixel-ruler image (for manual calibration)
@@ -17,6 +18,8 @@ from __future__ import annotations
 
 import argparse
 import json
+
+import numpy as np
 import os
 import sys
 from pathlib import Path
@@ -259,10 +262,25 @@ def analyze_options(a) -> dict:
     if a.normalize and a.normalize != "none":
         kw["normalize_opt"] = a.normalize
     if a.peaks:
-        if a.peaks.strip() == "auto":
+        if a.peaks.strip() in ("auto", "shoulders"):
             kw["auto_peaks"] = True
+            kw["peak_method"] = "prominence" if a.peaks.strip() == "auto" else "shoulders"
         else:
             kw["peaks"] = _num_list(a.peaks, "--peaks")
+    if a.components:
+        if a.components < 1:
+            raise ValueError("--components: at least 1")
+        kw["n_components"] = a.components
+        kw.setdefault("peak_method", "shoulders")
+    if a.center_window is not None:
+        kw["center_window"] = a.center_window
+    for opt, key in (("fwhm_range", "fwhm_range"), ("fit_range", "fit_range")):
+        v = getattr(a, opt)
+        if v:
+            r = parse_ranges(v)
+            if len(r) != 1:
+                raise ValueError(f"--{opt.replace('_', '-')}: expected LO:HI")
+            kw[key] = r[0]
     kw.update(prominence=a.prominence, max_peaks=a.max_peaks, shape=a.shape)
     if a.area:
         kw["areas"] = parse_ranges(a.area)
@@ -291,6 +309,81 @@ def cmd_analyze(a):
     for an, files in run_analyze(a):
         print("\n".join(summary_lines(an)))
         print("  files: " + ", ".join(str(v) if not isinstance(v, list) else ", ".join(v) for v in files.values()))
+
+
+# ───────────────────────────── fit ─────────────────────────────
+def fit_inputs(a):
+    """(expression, Param list, derived dict, x range) from the parsed ``fit`` options."""
+    from .curvefit import merge_params, model_for, parse_derived, parse_params, preset_bounds
+    expr, derived = model_for(a.model)
+    params = merge_params(preset_bounds(a.model), parse_params(a.p0, a.bounds, a.fix))
+    derived.update(parse_derived(a.derived))
+    rng = None
+    if a.range:
+        from .analysis import parse_ranges
+        r = parse_ranges(a.range)
+        if len(r) != 1:
+            raise ValueError("--range: expected LO:HI")
+        rng = r[0]
+    return expr, params, derived, rng
+
+
+def load_fit_series(a):
+    """[(name, x, y, sigma or None)] for ``fit``."""
+    from .plot.engine import read_table
+    from .analysis import load_series
+    out = []
+    tab = read_table(a.data)
+    long = "series" in tab and "x" in tab and "y" in tab and a.x in (None, "x") and a.y in (None, "y")
+    for name, x, y in load_series(a.data, x=a.x, y=a.y, series=a.series):
+        sig = None
+        if a.sigma:
+            if long and a.sigma in ("errors", "yerr"):
+                m = np.array([str(v) == name for v in tab["series"]])
+                lo = tab.get("yerr_minus", tab.get("yerr_lo"))
+                hi = tab.get("yerr_plus", tab.get("yerr_hi"))
+                if lo is None or hi is None:
+                    raise ValueError("--sigma errors: the file has no yerr_minus/yerr_plus columns")
+                sig = 0.5 * (np.asarray(lo[m], float) + np.asarray(hi[m], float))
+            elif a.sigma in tab:
+                sig = np.asarray(tab[a.sigma], float)
+            else:
+                raise ValueError(f"--sigma: no column '{a.sigma}' (columns: {', '.join(tab)})")
+        out.append((name, x, y, sig))
+    return out
+
+
+def run_fit(a):
+    """Fit every selected series; returns (results, files) with results = [(name, outcome, x, y)]."""
+    from .curvefit import fit, write
+    expr, params, derived, rng = fit_inputs(a)
+    results = []
+    for name, x, y, sig in load_fit_series(a):
+        import copy
+        r = fit(x, y, expr, copy.deepcopy(params), x_range=rng, sigma=sig, derived=derived, n_starts=a.starts,
+                absolute_sigma=a.absolute_sigma)
+        results.append((name, r, x, y))
+    out = a.out or (Path(a.data).stem + "_fit")
+    files = write(results, out, template=a.template, formats=_formats(a.formats), width=a.width,
+                  xlabel=a.xlabel, ylabel=a.ylabel, xscale=a.xscale, yscale=a.yscale)
+    return results, files
+
+
+def cmd_fit(a):
+    from .curvefit import PRESETS, summary_lines
+    if a.list_models:
+        for k, (e, d, der) in PRESETS.items():
+            print(f"{k:14s} {e:55s} {d}" + (f"  [derived: {', '.join(der)}]" if der else ""))
+        return 0
+    if not a.data:
+        print("resrijan fit: give a data file (or --list-models)", file=sys.stderr)
+        return 2
+    results, files = run_fit(a)
+    for name, r, _, _ in results:
+        print("\n".join(summary_lines(name, r)))
+        if r.at_bounds:
+            print(f"  note: {', '.join(r.at_bounds)} ended at a bound – widen it or check the model")
+    print("files: " + ", ".join(str(v) if not isinstance(v, list) else ", ".join(v) for v in files.values()))
 
 
 # ───────────────────────────── compose ─────────────────────────────
@@ -450,7 +543,13 @@ def build_parser() -> argparse.ArgumentParser:
     n.add_argument("--smooth", help="savgol[:window[:order]] or mean[:window], e.g. savgol:11:3")
     n.add_argument("--baseline", help="als[:lambda[:p]], poly[:order], ends or none (e.g. als:1e5:0.01)")
     n.add_argument("--normalize", "--normalise", choices=["max", "area", "minmax", "none"])
-    n.add_argument("--peaks", help="'auto' or peak positions to fit, e.g. 1450,1600")
+    n.add_argument("--peaks", help="'auto' (maxima), 'shoulders' (second derivative: also hidden bands) "
+                   "or starting positions, e.g. 1450,1600")
+    n.add_argument("--components", type=int, help="deconvolve into exactly N components (positions from the "
+                   "second derivative, gaps filled)")
+    n.add_argument("--center-window", type=float, help="each peak centre may move at most this far from its start")
+    n.add_argument("--fwhm-range", help="limits for every peak width, LO:HI")
+    n.add_argument("--fit-range", help="fit peaks only over LO:HI (the rest is kept and shown)")
     n.add_argument("--shape", default="voigt", choices=["gauss", "lorentz", "voigt"], help="peak shape (default: pseudo-Voigt)")
     n.add_argument("--prominence", type=float, default=0.05, help="with --peaks auto: minimum prominence as a fraction of the range")
     n.add_argument("--max-peaks", type=int, default=10)
@@ -461,6 +560,30 @@ def build_parser() -> argparse.ArgumentParser:
     n.add_argument("-o", "--out", help="output base name or folder (default: <data>_analysis)")
     n.add_argument("-f", "--formats", default="pdf,svg,png")
     n.set_defaults(fn=cmd_analyze)
+
+    q = sub.add_parser("fit", help="non-linear fit of any formula (or a preset) with bounds and a fit range")
+    q.add_argument("data", nargs="?", help="table (CSV/TSV/text) – e.g. a correlation function or an MSD")
+    q.add_argument("-x", help="x column (default: the first)")
+    q.add_argument("-y", help="y column(s), comma separated (default: all) – each is fitted separately")
+    q.add_argument("--series", help="fit only this series (ReSrijan data file) or y column")
+    q.add_argument("-m", "--model", default="exp1",
+                   help="a preset (see --list-models) or a formula in x, e.g. 'A*exp(-(x/tau)**beta) + C'")
+    q.add_argument("--p0", help="starting values, e.g. 'A=1,tau=10' (others are guessed)")
+    q.add_argument("--bounds", help="limits LO:HI, e.g. 'tau=0:1e4,beta=0:1,C=:0' (an empty side is open)")
+    q.add_argument("--fix", help="fixed values, e.g. 'C=0'")
+    q.add_argument("--range", help="fit only x between LO:HI (the figure still shows all data)")
+    q.add_argument("--derived", help="quantities from the parameters, ';' separated, e.g. 'tau_avg=tau/beta*gamma(1/beta)'")
+    q.add_argument("--sigma", help="y uncertainty column used as weights ('errors' for ReSrijan data files)")
+    q.add_argument("--absolute-sigma", action="store_true", help="treat --sigma as absolute (no rescaling by χ²)")
+    q.add_argument("--starts", type=int, default=12, help="number of starting points tried (default 12)")
+    q.add_argument("--xscale", choices=["linear", "log"]); q.add_argument("--yscale", choices=["linear", "log"])
+    q.add_argument("--xlabel"); q.add_argument("--ylabel")
+    q.add_argument("--list-models", action="store_true", help="list the preset models and exit")
+    q.add_argument("-t", "--template", default="natchem")
+    q.add_argument("--width", default="single")
+    q.add_argument("-o", "--out", help="output base name (default: <data>_fit)")
+    q.add_argument("-f", "--formats", default="pdf,svg,png")
+    q.set_defaults(fn=cmd_fit)
 
     c = sub.add_parser("compose", help="multi-panel figure from a YAML spec")
     c.add_argument("spec"); c.add_argument("-o", "--out"); c.add_argument("-f", "--formats")
@@ -513,6 +636,16 @@ def _check_style(ap, a):
     for t in getattr(a, "arrow", None) or []:
         try:
             parse_arrow(t)
+        except ValueError as exc:
+            ap.error(str(exc))
+    if a.cmd == "fit" and not a.list_models:
+        try:
+            from .curvefit import parse_model
+            expr, params, derived, _ = fit_inputs(a)
+            _, names = parse_model(expr)
+            extra = [p.name for p in params if p.name not in names]
+            if extra:
+                raise ValueError(f"not in the model: {', '.join(extra)} (parameters: {', '.join(names)})")
         except ValueError as exc:
             ap.error(str(exc))
     if a.cmd in ("analyze", "analyse"):

@@ -253,13 +253,21 @@ class FitResult:
     background: List[float]                 # linear background a + b·x (fitted when requested)
     r2: float
     rmse: float
-    model: np.ndarray = field(repr=False)
+    model: np.ndarray = field(repr=False)          # on the analysed x (the whole range)
     components: List[np.ndarray] = field(repr=False)
+    x_range: Tuple[float, float] = (float("nan"), float("nan"))   # x range the fit used
 
 
 def fit_peaks(x, y, centers: Sequence[float], shape: str = "voigt", background: bool = True,
-              fix_centers: bool = False) -> FitResult:
-    """Fit a sum of peaks (and a linear background) by least squares.
+              fix_centers: bool = False, center_window: Optional[float] = None,
+              fwhm_range: Optional[Tuple[float, float]] = None,
+              fit_range: Optional[Tuple[float, float]] = None) -> FitResult:
+    """Fit a sum of peaks (and a linear background) by least squares – also to deconvolve
+    overlapping bands into components.
+
+    ``center_window``: each centre may move at most this far from its starting position;
+    ``fwhm_range``: limits for every width; ``fit_range``: fit only x in (lo, hi) (the model and the
+    components are still returned on all of x).
     Errors are one standard deviation from the covariance matrix, scaled by the residual variance."""
     from scipy.optimize import curve_fit
     if shape not in SHAPES:
@@ -269,19 +277,33 @@ def fit_peaks(x, y, centers: Sequence[float], shape: str = "voigt", background: 
     x, y = x[ok], y[ok]
     o = np.argsort(x)
     x, y = x[o], y[o]
+    x_all = x
+    if fit_range is not None:
+        lo_, hi_ = min(fit_range), max(fit_range)
+        m = (x >= lo_) & (x <= hi_)
+        if m.sum() < 5:
+            raise ValueError(f"fewer than 5 points in the fit range {lo_:g}–{hi_:g}")
+        x, y = x[m], y[m]
     if not len(centers):
         raise ValueError("no peaks to fit")
+    if fwhm_range is not None and min(fwhm_range) >= max(fwhm_range):
+        raise ValueError("the FWHM range must have its lower limit below the upper limit")
     span = float(np.ptp(x)) or 1.0
     dx = float(np.median(np.diff(x))) if len(x) > 1 else 1.0
     npar = 4 if shape == "voigt" else 3
     p0, lo, hi = [], [], []
     yr = float(np.ptp(y)) or 1.0
+    wlo, whi = (dx * 0.5, span) if fwhm_range is None else (max(min(fwhm_range), 1e-12), max(fwhm_range))
     for c in centers:
         h = float(np.interp(c, x, y)) - (float(np.min(y)) if background else 0)
-        w = min(_guess_width(x, y, c), span / 2)
-        p0 += [max(h, 1e-3 * yr), c, max(w, 2 * dx)]
-        lo += [0, c - 1e-9 if fix_centers else x[0], dx * 0.5]
-        hi += [10 * yr, c + 1e-9 if fix_centers else x[-1], span]
+        w = min(_guess_width(x, y, c), span / 2, span / (2 * len(centers)) if len(centers) > 2 else span)
+        w = float(np.clip(max(w, 2 * dx), wlo * 1.0001, whi * 0.9999))
+        clo, chi = (c - 1e-9, c + 1e-9) if fix_centers else (x[0], x[-1])
+        if center_window is not None and not fix_centers:
+            clo, chi = max(x[0], c - abs(center_window)), min(x[-1], c + abs(center_window))
+        p0 += [max(h, 1e-3 * yr), float(np.clip(c, clo, chi)), w]
+        lo += [0, clo, wlo]
+        hi += [10 * yr, chi, whi]
         if shape == "voigt":
             p0.append(0.5); lo.append(0.0); hi.append(1.0)
     if background:
@@ -309,6 +331,7 @@ def fit_peaks(x, y, centers: Sequence[float], shape: str = "voigt", background: 
     fit = model(x, *popt)
     res = y - fit
     ss = float(np.sum((y - y.mean()) ** 2)) or 1.0
+    fit_all = model(x_all, *popt)
     peaks = []
     for k in range(len(centers)):
         q, e = popt[k * npar:(k + 1) * npar], perr[k * npar:(k + 1) * npar]
@@ -322,7 +345,45 @@ def fit_peaks(x, y, centers: Sequence[float], shape: str = "voigt", background: 
                           eta=eta, eta_err=float(e[3]) if shape == "voigt" else None))
     bg = [float(popt[-2] - popt[-1] * xm), float(popt[-1])] if background else [0.0, 0.0]
     return FitResult(shape=shape, peaks=peaks, background=bg, r2=1 - float(np.sum(res ** 2)) / ss,
-                     rmse=float(np.sqrt(np.mean(res ** 2))), model=fit, components=comps(x, *popt))
+                     rmse=float(np.sqrt(np.mean(res ** 2))), model=fit_all, components=comps(x_all, *popt),
+                     x_range=(float(x[0]), float(x[-1])))
+
+
+def find_shoulders(x, y, max_peaks: int = 10, prominence: float = 0.05, window: Optional[int] = None) -> List[float]:
+    """Peak and shoulder positions from minima of the smoothed second derivative.
+
+    Overlapping bands often show up only as shoulders, without a maximum of their own; the second
+    derivative still has a minimum at each band centre. ``prominence`` is relative to the range of
+    −y″; positions where the signal itself is below 10 % of its range are ignored. ``window``
+    (points) sets the smoothing of y″; the default, 1/15 of the points, suits bands wider than that."""
+    from scipy.signal import find_peaks as fp
+    from scipy.signal import savgol_filter
+    x, y = np.asarray(x, float), np.asarray(y, float)
+    n = len(y)
+    if n < 9:
+        return []
+    dx = float(np.mean(np.diff(x))) or 1.0
+    win = window or max(9, int(n / 15) | 1)       # strong smoothing: y″ amplifies noise
+    win = min(win | 1, n - 1 if n % 2 == 0 else n)
+    d2 = -savgol_filter(y, win, 3, deriv=2, delta=dx)
+    rng = float(np.nanmax(d2) - np.nanmin(d2)) or 1.0
+    idx, props = fp(d2, prominence=prominence * rng, height=0)
+    yr = float(np.nanmax(y) - np.nanmin(y)) or 1.0
+    keep = [(props["prominences"][k], i) for k, i in enumerate(idx) if y[i] - np.nanmin(y) > 0.1 * yr]
+    keep.sort(reverse=True)
+    return sorted(float(x[i]) for _, i in keep[:max_peaks])
+
+
+def component_positions(x, y, n: int, found: Sequence[float], fit_range: Optional[Tuple[float, float]] = None) -> List[float]:
+    """Exactly ``n`` starting positions: the strongest of ``found`` first, then the middle of the
+    widest gaps (and edges) of the range until there are ``n``."""
+    lo, hi = (float(np.min(x)), float(np.max(x))) if fit_range is None else (min(fit_range), max(fit_range))
+    pos = [c for c in found if lo <= c <= hi][:n]
+    while len(pos) < n:
+        pts = sorted([lo] + pos + [hi])
+        gaps = [(b - a, (a + b) / 2) for a, b in zip(pts[:-1], pts[1:])]
+        pos.append(max(gaps)[1])
+    return sorted(pos)
 
 
 # ───────────────────────────── data files ─────────────────────────────
@@ -376,7 +437,10 @@ def analyze(x, y, name: str = "y", convert: Optional[Tuple[str, str]] = None, ja
             baseline_opt: Optional[Tuple[str, dict]] = None, normalize_opt: Optional[str] = None,
             peaks: Optional[Sequence[float]] = None, auto_peaks: bool = False, prominence: float = 0.05,
             max_peaks: int = 10, shape: str = "voigt", fit_background: Optional[bool] = None,
-            areas: Sequence[Tuple[float, float]] = ()) -> Analysis:
+            areas: Sequence[Tuple[float, float]] = (), peak_method: Optional[str] = None,
+            n_components: Optional[int] = None, center_window: Optional[float] = None,
+            fwhm_range: Optional[Tuple[float, float]] = None,
+            fit_range: Optional[Tuple[float, float]] = None) -> Analysis:
     x, y = np.asarray(x, float), np.asarray(y, float)
     ok = np.isfinite(x) & np.isfinite(y)
     x, y = x[ok], y[ok]
@@ -415,15 +479,31 @@ def analyze(x, y, name: str = "y", convert: Optional[Tuple[str, str]] = None, ja
             base = base / (d or 1)
         steps.append(f"normalised ({normalize_opt}, divided by {d:.6g})")
     centers = list(peaks or [])
-    if auto_peaks:
-        found = find_peaks(x, y, prominence=prominence, max_peaks=max_peaks)
-        centers = sorted(set(centers) | set(found))
-        steps.append(f"{len(found)} peak(s) found (prominence > {prominence:g} of the range)")
+    xs, ys = x, y
+    if fit_range is not None:
+        m = (x >= min(fit_range)) & (x <= max(fit_range))
+        xs, ys = x[m], y[m]
+    if auto_peaks or n_components:
+        method = peak_method or ("shoulders" if n_components else "prominence")
+        if method == "shoulders":
+            found = find_shoulders(xs, ys, max_peaks=max(max_peaks, n_components or 0), prominence=prominence)
+            how = "peaks and shoulders (second derivative)"
+        else:
+            found = find_peaks(xs, ys, prominence=prominence, max_peaks=max(max_peaks, n_components or 0))
+            how = f"peak(s) (prominence > {prominence:g} of the range)"
+        if n_components:
+            ordered = sorted(found, key=lambda c: -float(np.interp(c, xs, ys)))
+            centers = component_positions(xs, ys, int(n_components), ordered, fit_range)
+            steps.append(f"{len(found)} {how} found; {n_components} component(s) placed")
+        else:
+            centers = sorted(set(centers) | set(found))
+            steps.append(f"{len(found)} {how} found")
     fit = None
     if centers:
-        fit = fit_peaks(x, y, centers, shape=shape,
-                        background=True if fit_background is None else fit_background)
-        steps.append(f"{len(centers)} {shape} peak(s) fitted, R² = {fit.r2:.4f}")
+        fit = fit_peaks(x, y, centers, shape=shape, background=True if fit_background is None else fit_background,
+                        center_window=center_window, fwhm_range=fwhm_range, fit_range=fit_range)
+        rng_txt = f" over {fit.x_range[0]:g}–{fit.x_range[1]:g}" if fit_range is not None else ""
+        steps.append(f"{len(centers)} {shape} peak(s) fitted{rng_txt}, R² = {fit.r2:.4f}")
     ar = []
     for lo, hi in areas:
         ar.append({"from": float(lo), "to": float(hi), "area": integrate(x, y, lo, hi)})
@@ -445,9 +525,11 @@ def peak_table(a: Analysis) -> List[Dict]:
     if not a.fit:
         return []
     rows = []
+    total = sum(p.area for p in a.fit.peaks) or float("nan")
     for k, p in enumerate(a.fit.peaks, 1):
         r = {"peak": k, "center": p.center, "center_err": p.center_err, "height": p.height, "height_err": p.height_err,
-             "fwhm": p.fwhm, "fwhm_err": p.fwhm_err, "area": p.area, "area_err": p.area_err}
+             "fwhm": p.fwhm, "fwhm_err": p.fwhm_err, "area": p.area, "area_err": p.area_err,
+             "area_pct": 100 * p.area / total, "area_pct_err": 100 * p.area_err / total}
         if p.eta is not None:
             r["eta"], r["eta_err"] = p.eta, p.eta_err
         rows.append(r)
@@ -457,9 +539,11 @@ def peak_table(a: Analysis) -> List[Dict]:
 def summary_lines(a: Analysis) -> List[str]:
     out = [f"{a.name}: " + "; ".join(a.steps) if a.steps else f"{a.name}: no processing"]
     if a.fit:
+        total = sum(p.area for p in a.fit.peaks) or float("nan")
         for k, p in enumerate(a.fit.peaks, 1):
             s = (f"  peak {k}: centre {_fmt(p.center, p.center_err)}, FWHM {_fmt(p.fwhm, p.fwhm_err)}, "
-                 f"height {_fmt(p.height, p.height_err)}, area {_fmt(p.area, p.area_err)}")
+                 f"height {_fmt(p.height, p.height_err)}, area {_fmt(p.area, p.area_err)} "
+                 f"({_fmt(100 * p.area / total, 100 * p.area_err / total)} %)")
             if p.eta is not None:
                 s += f", Lorentzian fraction {_fmt(p.eta, p.eta_err)}"
             out.append(s)
@@ -483,7 +567,9 @@ def write(a: Analysis, base: str, template: str = "natchem", formats: Sequence[s
         cols["fit"] = a.fit.model
         for k, c in enumerate(a.fit.components, 1):
             cols[f"peak{k}"] = c
-        cols["residual"] = a.y - a.fit.model
+        r_ = a.y - a.fit.model
+        lo_, hi_ = a.fit.x_range
+        cols["residual"] = np.where((a.x >= lo_) & (a.x <= hi_), r_, np.nan)
     with open(base + "_processed.csv", "w") as fh:
         fh.write(",".join(cols) + "\n")
         for i in range(len(a.x)):
@@ -546,7 +632,13 @@ def analysis_figure(a: Analysis, template: str = "natchem", width="single", xlab
                         "legend": "best", "sort": False, "xlim": lim}, tpl)
         if axr is not None:
             ax.tick_params(axis="x", which="both", labelbottom=False)
-            draw_panel(axr, {"type": "line", "series": [{"x": a.x, "y": a.y - a.fit.model, "color": "0.3", "lw": 0.6}],
+            lo_, hi_ = a.fit.x_range
+            inside = (a.x >= lo_) & (a.x <= hi_)
+            if not inside.all():
+                for a_ in (ax, axr):
+                    a_.axvspan(lo_, hi_, color="0.5", alpha=0.07, lw=0, zorder=0)
+            draw_panel(axr, {"type": "line", "series": [{"x": a.x[inside], "y": (a.y - a.fit.model)[inside],
+                                                         "color": "0.3", "lw": 0.6}],
                              "xlabel": xl, "ylabel": "Resid.", "legend": False, "sort": False, "hlines": [0.0],
                              "xlim": lim}, tpl)
             axr.yaxis.set_major_locator(plt.MaxNLocator(3, symmetric=True))

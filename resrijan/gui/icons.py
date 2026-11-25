@@ -42,6 +42,8 @@ _P = {
     "analyze": '<path d="M3 20h18"/><path d="M3 18c3 0 3.5-11 6-11s2.5 9 4.5 9 2-6 3.5-6 2 8 4 8"/>',
     # crosshair on a peak: place a peak
     "peak": '<path d="M4 19c4 0 5-13 8-13s4 13 8 13"/><path d="M12 2v6M9 5h6"/>',
+    # points with a fitted curve: the Fit page
+    "curvefit": '<path d="M4 4v16h16"/><path d="M6 7c3 6 7 9 14 10"/><circle cx="8" cy="10.5" r="1"/><circle cx="12" cy="14" r="1"/><circle cx="16.5" cy="16" r="1"/>',
     # pencil: edit data
     "edit": '<path d="M4 20l1-5L16 4l4 4L9 19z"/><path d="M13 7l4 4"/>',
     "terminal": '<rect x="3" y="4" width="18" height="16" rx="2"/><path d="M7 9l3 3-3 3M12 15h5"/>',

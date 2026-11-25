@@ -125,6 +125,20 @@ Open a data table (your own, or a digitised `*_data.csv`) and choose the series.
 
 The preview shows the fit, each peak and the residuals; below it, the steps applied and a table of the fitted peaks with standard errors (hover over it for R²). **Save results** writes the processed data, the peak table, a JSON summary and the figure (`resrijan analyze`). See [tutorial 19](19-analysis.md).
 
+For merged bands, choose **find maxima and shoulders** or **deconvolve into N components**. You can also set the fit range, how far each centre may move and the width limits. The table then gives each component's share of the area in percent (tutorial 19, *Deconvolution*).
+
+## Fit
+
+![Fit](../images/gui_fit.png)
+
+Fit any formula to one or more series – correlation functions, MSD, Arrhenius plots, binding curves:
+1. Open the data, pick x and tick the y series (each is fitted separately), and optionally a column of uncertainties as weights.
+2. Choose a preset (single, double or triple exponential, stretched exponential, MSD in 1–3 dimensions, power law, Arrhenius, Gaussian, …) or type your own formula after **y =**. The table lists every constant: type a **start** value, **lower** and **upper** bounds, or tick **fixed**.
+3. Fit all the data, or set a range: type it, or press **Set range by clicking** and click its start and end on the preview.
+4. **Derived** quantities (e.g. `tau_avg = tau/beta*gamma(1/beta)`) are computed with propagated errors.
+
+Press **Fit** (or tick *Live preview*): the results appear next to each constant, and for several series in the table below the preview. A constant stopped by a bound is flagged. **Save results** writes the parameter table, the fitted curves, a JSON file and the figure (`resrijan fit`, [tutorial 20](20-curve-fitting.md)).
+
 ## Projects
 
 **File → Save project** (Ctrl+S) writes a `.resrijan` file with the state of every page: the figure, pages, region and clicked ticks, all options, the Plot page's columns and look, the analysis settings and the Compose spec. **File → Open project** (Ctrl+Shift+O, or drop the file on the window) restores it.
