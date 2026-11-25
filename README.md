@@ -38,6 +38,8 @@ Everything runs locally. No uploads, no web service.
   * colour-map saturation;
   * bars whose printed value disagrees with the drawn height, and stray shapes;
   * JPEG artefacts and the data resolution of each axis.
+* **Correct by hand.** In the GUI, drag, add or delete points over the original figure, split and merge series, and save the edited data with a log of every change.
+* **Analysis.** Baseline (ALS, polynomial), smoothing, normalisation, unit conversion (nm, µm, cm⁻¹, eV, THz), peak fitting (Gaussian, Lorentzian, pseudo-Voigt) with standard errors, and areas.
 * **Journal templates** as plain YAML files: `natchem`, `acs`, `aps`, `jcp`, `science`, `pnas`, `rsc` and `presentation`, or your own.
 * **Automatic multi-panel layout** with panel letters in the journal's style. Text stays editable in Illustrator and Inkscape.
 
@@ -67,8 +69,11 @@ Other Linux distributions work with the same packages. macOS should work with Ho
 Prefer a window? `pip install "resrijan[gui]"`, then run `resrijan gui`. Every command and option is there, in a dark interface:
 - draw the region and click axis ticks on a preview;
 - browse the replots, overlays and data;
-- plot your own data with a live preview, and compose multi-panel figures;
-- import and edit journal templates.
+- correct the extracted points by hand, over the original figure;
+- plot your own data with a live preview, styled to your taste (line styles, markers, legend, fonts, labels and arrows);
+- analyse spectra: baseline, peak fitting with errors, areas;
+- compose multi-panel figures, import and edit journal templates;
+- save the whole session as a project and reopen it later.
 
 Each page shows the equivalent `resrijan` command, ready to copy into a script. See [tutorial 18](https://github.com/rbiswasgroup/resrijan/blob/main/docs/tutorials/18-gui.md).
 
@@ -89,6 +94,9 @@ resrijan digitize tem.tif --type micrograph
 # plot your own data with a journal template
 resrijan plot data.csv -x t_ps -y c1,c2 --yscale log --xlabel "t (ps)" --ylabel "C(t)" -t acs
 
+# baseline, automatic peak fitting with errors, and an area
+resrijan analyze spectrum.csv --baseline als --peaks auto --area 1400:1500
+
 # a multi-panel figure from a YAML description
 resrijan compose figure.yaml
 ```
@@ -107,7 +115,7 @@ The tutorials in [`docs/tutorials/`](https://github.com/rbiswasgroup/resrijan/bl
 | [3 · Log axes](https://github.com/rbiswasgroup/resrijan/blob/main/docs/tutorials/03-log-axes.md) | [9 · Multi-panel pages](https://github.com/rbiswasgroup/resrijan/blob/main/docs/tutorials/09-multipanel-pages.md) | [15 · Python API](https://github.com/rbiswasgroup/resrijan/blob/main/docs/tutorials/15-python-api.md) |
 | [4 · Scatter & error bars](https://github.com/rbiswasgroup/resrijan/blob/main/docs/tutorials/04-scatter-errorbars.md) | [10 · SVG, EPS, PS](https://github.com/rbiswasgroup/resrijan/blob/main/docs/tutorials/10-svg-eps-ps.md) | [16 · Image figures](https://github.com/rbiswasgroup/resrijan/blob/main/docs/tutorials/16-image-figures.md) |
 | [5 · Bar charts](https://github.com/rbiswasgroup/resrijan/blob/main/docs/tutorials/05-bar-charts.md) | [11 · When automatic reading fails](https://github.com/rbiswasgroup/resrijan/blob/main/docs/tutorials/11-manual-calibration.md) | [17 · Tricky axes](https://github.com/rbiswasgroup/resrijan/blob/main/docs/tutorials/17-tricky-axes.md) |
-| | | [18 · Graphical interface](https://github.com/rbiswasgroup/resrijan/blob/main/docs/tutorials/18-gui.md) |
+| | [19 · Analyse spectra and curves](https://github.com/rbiswasgroup/resrijan/blob/main/docs/tutorials/19-analysis.md) | [18 · Graphical interface](https://github.com/rbiswasgroup/resrijan/blob/main/docs/tutorials/18-gui.md) |
 
 ## Accuracy
 

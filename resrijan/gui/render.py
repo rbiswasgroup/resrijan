@@ -18,10 +18,26 @@ def figure_png(fig, dpi: float = 160) -> bytes:
 
 def plot_preview(args, dpi: float = 160) -> bytes:
     """Preview of `resrijan plot …` (parsed args) without writing files."""
-    from ..cli import plot_spec
+    from ..cli import figure_style, plot_spec
     from ..plot.engine import figure
-    fig, _, _ = figure([plot_spec(args)], template=args.template, width=args.width, labels=False)
+    fig, _, _ = figure([plot_spec(args)], template=args.template, width=args.width, labels=False,
+                       style=figure_style(args))
     return figure_png(fig, dpi)
+
+
+def analysis_preview(args, dpi: float = 160):
+    """Analyse the first selected series of `resrijan analyze …` (parsed args) without writing files.
+    Returns (png, Analysis, (plot-area left px, right px, x at left, x at right))."""
+    from ..analysis import analysis_figure, analyze, load_series
+    from ..cli import analyze_options
+    name, x, y = load_series(args.data, x=args.x, y=args.y, series=args.series)[0]
+    an = analyze(x, y, name=name, **analyze_options(args))
+    fig = analysis_figure(an, template=args.template, width=args.width, xlabel=args.xlabel, ylabel=args.ylabel)
+    fig.canvas.draw()
+    ax = fig.axes[0]
+    bb, k = ax.get_window_extent(), dpi / fig.dpi
+    lo, hi = ax.get_xlim()
+    return figure_png(fig, dpi), an, (bb.x0 * k, bb.x1 * k, lo, hi)
 
 
 def compose_preview(spec: dict, base: str, dpi: float = 130) -> bytes:
@@ -30,7 +46,8 @@ def compose_preview(spec: dict, base: str, dpi: float = 130) -> bytes:
     figspec = spec.get("figure", {}) or {}
     fig, _, _ = figure(spec["panels"], template=figspec.get("template", "natchem"),
                        width=figspec.get("width", "double"), height=figspec.get("height"),
-                       labels=figspec.get("labels", True), rows=figspec.get("rows"), base=base)
+                       labels=figspec.get("labels", True), rows=figspec.get("rows"), base=base,
+                       style={k: figspec[k] for k in ("font", "font_scale", "line_scale") if k in figspec})
     return figure_png(fig, dpi)
 
 

@@ -107,6 +107,8 @@ def _series_from_spec(spec: dict):
         for n in names:
             m = tab["series"] == n
             d = {"x": tab["x"][m].astype(float), "y": tab["y"][m].astype(float), "label": str(n)}
+            if "kind" in tab and str(tab["kind"][m][0]) in ("markers", "line"):
+                d["kind"] = str(tab["kind"][m][0])
             for e, k in (("yerr_lo", "yerr_lo"), ("yerr_hi", "yerr_hi"), ("yerr_minus", "yerr_lo"), ("yerr_plus", "yerr_hi")):
                 if e in tab:
                     d[k] = tab[e][m].astype(float)
@@ -155,6 +157,7 @@ def draw_panel(ax, spec: dict, tpl: T.Template, base: str = ".") -> Optional[Any
         style = spec.get("style", {})
         ax_pt = _axes_width_pt(ax)
         for k, s in enumerate(series):
+            s = _user_style(s, spec, k, typ)
             col = _pick_color(spec.get("colors"), k) or s.get("color") or tpl.palette[k % len(tpl.palette)]
             kind = s.get("kind") or ("markers" if typ == "scatter" else "line")
             x, y = np.asarray(s["x"], float), np.asarray(s["y"], float)
@@ -175,21 +178,24 @@ def draw_panel(ax, spec: dict, tpl: T.Template, base: str = ".") -> Optional[Any
             if kind == "markers" or typ == "scatter" or yerr is not None or s.get("markers_and_line"):
                 marker = s.get("marker", style.get("marker", "osD^v<>ph"[k % 9]))
                 ms = L["markersize"] * (1.15 if s.get("mec") else 1)
-                if s.get("ms_frac"):          # the source's marker size relative to the plot width
+                if s.get("ms"):
+                    ms = float(s["ms"])
+                elif s.get("ms_frac"):          # the source's marker size relative to the plot width
                     ms = float(np.clip(s["ms_frac"] * ax_pt, 0.5 * ms, 4.0 * ms))
                 mew = float(np.clip(s["mew_frac"] * ax_pt, 0.3, 3.0)) if s.get("mew_frac") else 0.6
                 ax.errorbar(x, y, yerr=yerr, fmt=marker, color=col, ms=ms,
                             mfc=s.get("mfc", col), mec=s.get("mec", col), mew=mew, elinewidth=L["errorbar_lw"],
                             capsize=L["capsize"], capthick=L["errorbar_lw"], label=s.get("label"),
-                            ls=ls if (kind == "line" and typ != "scatter") else "none", lw=L["linewidth"])
+                            ls=ls if (kind == "line" and typ != "scatter") else "none", lw=s.get("lw", L["linewidth"]))
             else:
                 lw = s.get("lw", L["linewidth"])
                 if s.get("lw_frac") and "lw" not in s:
                     lw = float(np.clip(s["lw_frac"] * ax_pt, 0.4 * lw, 3.0 * lw))
                 ax.plot(x, y, color=col, lw=lw, ls=s.get("linestyle", ls), label=s.get("label"))
-        if spec.get("legend", len(series) > 1):
-            loc = spec["legend"] if isinstance(spec.get("legend"), str) else "best"
-            ax.legend(loc=loc)
+        if spec.get("hlines"):
+            for v in spec["hlines"]:
+                ax.axhline(v, color="0.55", lw=0.5, ls=(0, (2, 2)), zorder=0)
+        _legend(ax, spec, len(series) > 1)
     elif typ in ("heatmap", "contourf", "contour", "spectrum2d"):
         if "z" in spec:
             x, y, z = np.asarray(spec["x"]), np.asarray(spec["y"]), np.asarray(spec["z"])
@@ -354,6 +360,8 @@ def draw_panel(ax, spec: dict, tpl: T.Template, base: str = ".") -> Optional[Any
         ax.spines["right"].set_visible(False)
         ax.spines["top"].set_visible(False)
         ax.yaxis.set_visible(False)
+    if spec.get("hide_xticklabels"):
+        ax.tick_params(axis="x", which="both", labelbottom=False)
     if spec.get("hide_yticklabels"):
         ax.tick_params(axis="y", which="both", labelleft=False)
     if spec.get("hide_yticks"):
@@ -368,10 +376,16 @@ def draw_panel(ax, spec: dict, tpl: T.Template, base: str = ".") -> Optional[Any
         ax.grid(True, ls=(0, (3, 2)), lw=0.4, color="0.82", zorder=0)
         ax.set_axisbelow(True)
     for ann in spec.get("annotations", []) or []:
-        fs = tpl.font["tick"] * ann["size_rel"] if ann.get("size_rel") else tpl.font["legend"]
-        ax.annotate(ann["text"], xy=ann["xy"], xycoords=ann.get("coords", "data"), fontsize=fs,
-                    ha=ann.get("ha", "center"), va=ann.get("va", "baseline"), color=ann.get("color", "k"),
-                    fontweight=ann.get("weight", "normal"), annotation_clip=False)
+        fs = ann.get("size") or (tpl.font["tick"] * ann["size_rel"] if ann.get("size_rel") else tpl.font["legend"])
+        kw = {}
+        if ann.get("xytext") is not None:      # an arrow from the text to the point
+            kw = {"xytext": ann["xytext"], "textcoords": ann.get("coords", "data"),
+                  "arrowprops": {"arrowstyle": "-|>", "color": ann.get("color", "k"), "lw": ann.get("lw", 0.6),
+                                 "shrinkA": 1.5, "shrinkB": 1.5, "mutation_scale": ann.get("head", 6)}}
+        ax.annotate(ann.get("text", ""), xy=ann["xy"], xycoords=ann.get("coords", "data"), fontsize=fs,
+                    ha=ann.get("ha", "center"), va=ann.get("va", "baseline" if not kw else "center"),
+                    color=ann.get("color", "k"), fontweight=ann.get("weight", "normal"),
+                    fontstyle=ann.get("style", "normal"), annotation_clip=False, **kw)
     if spec.get("annotations") and spec.get("title") and typ != "image":
         # labels placed above the axes (peak letters) sit under the title, as in the source
         ys = [ax.transLimits.transform(ax.transScale.transform(a["xy"]))[1]
@@ -381,6 +395,62 @@ def draw_panel(ax, spec: dict, tpl: T.Template, base: str = ".") -> Optional[Any
             ax.set_title(spec["title"], fontsize=tpl.font["label"], y=top + 0.07, **_title_kw(spec.get("title_style")))
             ax._resrijan_title_lifted = True
     return ret
+
+
+LINESTYLES = {"solid": "-", "dashed": "--", "dotted": ":", "dashdot": "-.", "none": "none",
+              "-": "-", "--": "--", ":": ":", "-.": "-."}
+MARKERS = {"circle": "o", "square": "s", "triangle": "^", "down": "v", "diamond": "D", "pentagon": "p",
+           "hexagon": "h", "star": "*", "plus": "P", "cross": "X", "dot": ".", "none": "none"}
+LEGEND_LOCS = ["best", "upper right", "upper left", "lower left", "lower right", "right", "center left",
+               "center right", "lower center", "upper center", "center", "outside right", "outside top", "none"]
+
+
+def _user_style(s: dict, spec: dict, k: int, typ: str) -> dict:
+    """Series style chosen by the user (``linestyles``, ``markers``, ``linewidth``, ``markersize``
+    lists/values in the panel spec) on top of the series' own style."""
+    s = dict(s)
+    ls = _pick_color(spec.get("linestyles"), k)
+    if ls:
+        s["linestyle"] = LINESTYLES.get(ls.lower(), ls)
+    mk = _pick_color(spec.get("markers"), k)
+    if mk:
+        mk = MARKERS.get(mk.lower(), mk)
+        if mk == "none":
+            if typ == "line" and "yerr" not in s and "yerr_lo" not in s:
+                s["kind"] = "line"
+                s.pop("markers_and_line", None)
+        else:
+            s["marker"] = mk
+            if typ in ("line", "errorbar") and s.get("kind") != "markers":
+                s["markers_and_line"] = True
+    if spec.get("linewidth"):
+        s["lw"] = float(spec["linewidth"])
+    if spec.get("markersize"):
+        s["ms"] = float(spec["markersize"])
+    return s
+
+
+def _legend(ax, spec: dict, default: bool):
+    """Legend position (any matplotlib location, 'outside right', 'outside top' or 'none'),
+    frame and number of columns."""
+    lg = spec.get("legend", default)
+    if lg in (False, None, "none", "off") or not ax.get_legend_handles_labels()[0]:
+        return
+    loc = lg if isinstance(lg, str) else "best"
+    kw = {"frameon": bool(spec.get("legend_frame", False)), "ncols": int(spec.get("legend_ncol", 1))}
+    if loc == "outside right":
+        kw.update(loc="upper left", bbox_to_anchor=(1.02, 1.0), borderaxespad=0)
+    elif loc == "outside top":
+        kw.update(loc="lower center", bbox_to_anchor=(0.5, 1.02), borderaxespad=0)
+        kw["ncols"] = int(spec.get("legend_ncol", len(ax.get_legend_handles_labels()[0])))
+    else:
+        kw["loc"] = loc
+    if spec.get("legend_size"):
+        kw["fontsize"] = float(spec["legend_size"])
+    leg = ax.legend(**kw)
+    if kw["frameon"]:
+        leg.get_frame().set_linewidth(0.4)
+        leg.get_frame().set_edgecolor("0.3")
 
 
 def _pick_color(colors, k: int):
@@ -522,11 +592,12 @@ def _panel_aspect(spec: dict, base: str) -> (float, bool):
 def figure(panels: List[dict], template: str = "natchem", width: Union[str, float] = "double",
            height: Optional[float] = None, labels: Union[bool, List[str]] = True,
            rows: Optional[List[List[int]]] = None, base: str = ".", hgap_mm: float = 6.0, vgap_mm: float = 5.0,
-           cols: Optional[List[List[int]]] = None):
+           cols: Optional[List[List[int]]] = None, style: Optional[dict] = None):
     """Build a multi-panel figure. Returns (fig, axes, layout).
+    ``style``: ``font`` (family name), ``font_scale`` (all text sizes), ``line_scale`` (line widths).
     ``cols`` (with ``rows``): column of each panel on a common grid; rows with fewer panels
     keep empty cells, so every row has the same panel size (source layouts)."""
-    tpl = T.get(template)
+    tpl = _styled(T.get(template), style)
     W = tpl.width_mm(width)
     asp = [_panel_aspect(p, base) for p in panels]
     grid = None
@@ -573,6 +644,38 @@ def figure(panels: List[dict], template: str = "natchem", width: Union[str, floa
         _fit_image_texts(fig)
     fig._resrijan_template = tpl
     return fig, axes, lay
+
+
+def _styled(tpl, style: Optional[dict]):
+    """A copy of the template with the user's font and size changes."""
+    import dataclasses
+    if not style:
+        return tpl
+    font, lines, pl = dict(tpl.font), dict(tpl.lines), dict(tpl.panel_label)
+    if style.get("font"):
+        font["names"] = [style["font"]] + [n for n in font["names"] if n != style["font"]]
+        from matplotlib import font_manager
+        fams = {f.name: f for f in font_manager.fontManager.ttflist}
+        if style["font"] in fams and "serif" in style["font"].lower() and "sans" not in style["font"].lower():
+            font["family"] = "serif"
+    fs = float(style.get("font_scale") or 1.0)
+    if fs != 1.0:
+        for k in ("size", "label", "tick", "legend"):
+            font[k] = round(font[k] * fs, 2)
+        pl["size"] = round(pl.get("size", 8) * fs, 2)
+    ls = float(style.get("line_scale") or 1.0)
+    if ls != 1.0:
+        for k in ("linewidth", "errorbar_lw"):
+            if k in lines:
+                lines[k] = lines[k] * ls
+        lines["markersize"] = lines["markersize"] * ls ** 0.5
+    return dataclasses.replace(tpl, font=font, lines=lines, panel_label=pl)
+
+
+def font_names() -> List[str]:
+    """Font families matplotlib can use on this computer."""
+    from matplotlib import font_manager
+    return sorted({f.name for f in font_manager.fontManager.ttflist})
 
 
 def _fit_image_texts(fig):
@@ -673,7 +776,8 @@ def compose(spec_path: str, out: Optional[str] = None, formats=None) -> List[str
     figspec = spec.get("figure", {})
     fig, axes, lay = figure(spec["panels"], template=figspec.get("template", "natchem"),
                             width=figspec.get("width", "double"), height=figspec.get("height"),
-                            labels=figspec.get("labels", True), rows=figspec.get("rows"), base=base)
+                            labels=figspec.get("labels", True), rows=figspec.get("rows"), base=base,
+                            style={k: figspec[k] for k in ("font", "font_scale", "line_scale") if k in figspec})
     out = out or os.path.join(base, figspec.get("output", Path(spec_path).stem))
     os.makedirs(os.path.dirname(os.path.abspath(out)), exist_ok=True)
     fmts = formats or figspec.get("formats", ["pdf", "svg", "png"])

@@ -6,7 +6,7 @@ authors:
   - family-names: Biswas
     given-names: Rajib
     affiliation: "Indian Institute of Technology Tirupati"
-version: 0.5.0
+version: 0.6.0
 date-released: 2026-11-25
 license: AGPL-3.0-or-later
 repository-code: "https://github.com/rbiswasgroup/resrijan"

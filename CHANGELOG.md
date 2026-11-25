@@ -1,5 +1,29 @@
 # Changelog
 
+## 0.6.0 — 2026-11-25
+
+**Correct the data by hand**
+* Data editor in the GUI (Digitize results → **Edit data…**, or File → Edit data file…): the points are drawn over the original plot; move, add and delete points (one by one or in a box), type exact values, split, merge, rename and delete series, with undo/redo.
+* Saving writes `*_data_edited.csv` (same format as `*_data.csv`), a JSON log of every change, and a replot in the panel's style. The original data are kept.
+
+**Analysis** (`resrijan analyze`, GUI page **Analyze**, `resrijan.analysis`)
+* Unit conversion (nm, µm, cm⁻¹, eV, THz; optional intensity Jacobian), cropping, Savitzky–Golay or moving-average smoothing, ALS / polynomial / end-point baselines, normalisation (max, area, 0–1).
+* Peak fitting (Gaussian, Lorentzian, pseudo-Voigt with fitted Lorentzian fraction) at automatic or given positions, with a linear background; standard errors for centre, height, FWHM and area; R² and RMS residual.
+* Areas over x ranges. Outputs: processed data, peak table, JSON summary, and a journal-style figure with components and residuals.
+* GUI: live preview, peak table with errors, and peaks placed by clicking on the preview.
+
+**Styling**
+* `plot`: `--linestyles`, `--markers`, `--linewidth`, `--markersize`, `--legend` (any position, `outside right`, `outside top`, `none`), `--legend-frame`, `--legend-cols`, `--grid`, `--font`, `--font-scale`, `--line-scale`, `--text` and `--arrow` labels (data or axes coordinates, optional colour).
+* Compose specs: the same keys per panel, and `font`, `font_scale`, `line_scale` for the figure.
+* GUI Plot page: line and marker per series, and a **Look** box (legend, sizes, font, scale, grid, text labels and arrows with the symbol palette).
+
+**Projects**
+* File → Save/Open project (`.resrijan`, JSON): every page's state – figure, region, clicked ticks, options, plot look, analysis settings, compose spec. Paths inside the project folder are stored relative to it.
+
+**Other**
+* Data files with a `kind` column (`markers`/`line`) are plotted with markers or lines accordingly.
+* Tutorial 19 (analysis) and example `15_analysis`; tutorials 12 and 18 extended.
+
 ## 0.5.0 — 2026-11-25
 * **Graphical interface** (`pip install "resrijan[gui]"`, then `resrijan gui` or `resrijan-gui`): a dark Qt interface with every command and option of the CLI.
   * Digitize, with a page preview, region drawing and tick clicking for manual calibration, and a results browser (replots, overlays, data, notes, combined figure, report).

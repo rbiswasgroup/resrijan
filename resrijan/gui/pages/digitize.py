@@ -192,7 +192,10 @@ class DigitizePage(Page):
         self.b_report.clicked.connect(lambda: self._open(self.result and self.result[1]["report"]))
         self.b_folder = QPushButton(icon("folder"), "Open folder")
         self.b_folder.clicked.connect(lambda: self._open(self.result and self.result[2]))
-        for b in (self.b_report, self.b_folder):
+        self.b_edit = QPushButton(icon("edit"), "Edit data…")
+        self.b_edit.setToolTip("Correct the points of the selected panel by hand: move, add, delete, split, merge")
+        self.b_edit.clicked.connect(self.edit_data)
+        for b in (self.b_edit, self.b_report, self.b_folder):
             b.setEnabled(False)
             top.addWidget(b)
         lay.addLayout(top)
@@ -266,6 +269,9 @@ class DigitizePage(Page):
             self.page_list.setCurrentRow(0)
             self.show_page(0)
         self._update_hint()
+        pend, self._pending = getattr(self, "_pending", None), None
+        if pend:
+            self._apply_view_state(pend)
 
     def show_page(self, i: int):
         if not (0 <= i < len(self.pages)):
@@ -539,8 +545,108 @@ class DigitizePage(Page):
         if not rp:
             self.v_replot.view.set_placeholder("No replot for this panel (see the notes).")
         self.v_overlay.view.set_image(p.files.get("overlay"))
-        data = p.files.get("data") or p.files.get("contours") or p.files.get("annotations")
+        data = p.files.get("edited") or p.files.get("data") or p.files.get("contours") or p.files.get("annotations")
         self.data.load(data)
+        self.b_edit.setEnabled(bool(p.series) and bool(p.files.get("data")))
+        if p.files.get("replot_edited"):
+            self.v_replot.view.set_image(self._best_image(p.files["replot_edited"]))
+
+    def current_panel(self):
+        it = self.tree.currentItem()
+        return None if it is None or not self.result else self.result[0][it.data(0, Qt.UserRole)]
+
+    def edit_data(self):
+        from ...pipeline import panel_spec
+        from ..editor import DataEditor, EditData, edited_path, panel_background
+        p = self.current_panel()
+        if p is None or not p.files.get("data"):
+            return
+        src = p.files["data"]
+        prev = edited_path(src)
+        data = EditData.from_csv(prev if Path(prev).exists() else src)
+        try:
+            spec = panel_spec(p)
+        except Exception:  # noqa: BLE001
+            spec = None
+        dlg = DataEditor(src, data=data, background=panel_background(p), spec=spec,
+                         template=self.template.value() or "natchem",
+                         formats=[f for f in self.formats.value().split(",") if f], title=p.id, parent=self)
+
+        def saved(out):
+            p.files["edited"] = out
+            rp = Path(out[:-4].replace("_data_edited", "_replot_edited"))
+            files = [str(rp.with_suffix("." + f)) for f in self.formats.value().split(",") if f]
+            p.files["replot_edited"] = [f for f in files if Path(f).exists()]
+            self._panel_selected(self.tree.currentItem())
+            self.win.status(f"Saved edited data: {Path(out).name}")
+        dlg.saved.connect(saved)
+        self.editor = dlg
+        dlg.show()
+
+    # ───────────────────────── project files ─────────────────────────
+    def state(self) -> dict:
+        checked = [i for i in range(self.page_list.count()) if self.page_list.item(i).checkState() == Qt.Checked]
+        return {"file": self.file.text(), "pages_checked": checked, "current": self.cur, "dpi": self.dpi.value(),
+                "prefer": self.prefer.currentText(), "region": list(self.region) if self.region else None,
+                "region_text": self.region_edit.text(), "picks": {k: [list(t) for t in v] for k, v in self.picks.items()},
+                "xcal": self.xcal.text(), "ycal": self.ycal.text(), "scale": self.scale.text(),
+                "type": self.kind.currentText(), "xscale": self.xscale.currentText(),
+                "yscale": self.yscale.currentText(), "max_series": self.max_series.value(),
+                "particles": self.particles.isChecked(), "template": self.template.value(),
+                "width": self.width.value(), "formats": self.formats.value(), "xlabel": self.xlabel.text(),
+                "ylabel": self.ylabel.text(), "label_color": self.label_color.value(), "out": self.out.text(),
+                "strict": self.strict.isChecked()}
+
+    def set_state(self, s: dict):
+        from ..project import set_combo
+        self.dpi.setValue(float(s.get("dpi", self.dpi.value())))
+        set_combo(self.prefer, s.get("prefer"))
+        set_combo(self.kind, s.get("type"))
+        set_combo(self.xscale, s.get("xscale"))
+        set_combo(self.yscale, s.get("yscale"))
+        self.max_series.setValue(int(s.get("max_series", 12)))
+        self.particles.setChecked(bool(s.get("particles", True)))
+        if s.get("template"):
+            self.template.set_value(s["template"])
+        if s.get("width"):
+            self.width.setCurrentText(s["width"])
+        if s.get("formats"):
+            self.formats.set_value(s["formats"])
+        self.xlabel.setText(s.get("xlabel", ""))
+        self.ylabel.setText(s.get("ylabel", ""))
+        self.label_color.set_value(s.get("label_color", ""))
+        self.out.setText(s.get("out", ""))
+        self.strict.setChecked(bool(s.get("strict")))
+        self.scale.setText(s.get("scale", ""))
+        f = s.get("file", "")
+        if f and Path(f).is_file():
+            self._pending = s
+            self.open_path(f)            # region, ticks and pages are restored once the preview is loaded
+        else:
+            self.xcal.setText(s.get("xcal", ""))
+            self.ycal.setText(s.get("ycal", ""))
+            if f:
+                raise FileNotFoundError(f"figure not found: {f}")
+        self.update_command()
+
+    def _apply_view_state(self, s: dict):
+        for i in s.get("pages_checked", []):
+            if i < self.page_list.count():
+                self.page_list.item(i).setCheckState(Qt.Checked)
+        cur = int(s.get("current", 0))
+        if 0 <= cur < len(self.pages):
+            self.page_list.setCurrentRow(cur)
+            self.show_page(cur)
+        self.picks = {k: [tuple(t) for t in v] for k, v in (s.get("picks") or {"x": [], "y": []}).items()}
+        self.picks.setdefault("x", [])
+        self.picks.setdefault("y", [])
+        self.region = tuple(s["region"]) if s.get("region") else None
+        self.region_edit.setText(s.get("region_text", ""))
+        self.xcal.setText(s.get("xcal", ""))
+        self.ycal.setText(s.get("ycal", ""))
+        self._draw_overlays()
+        self._update_hint()
+        self.update_command()
 
     @staticmethod
     def _open(path):

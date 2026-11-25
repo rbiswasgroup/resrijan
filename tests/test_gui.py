@@ -186,3 +186,81 @@ def test_colour_button_value_and_bad_colour_rejected():
     assert b.value().lower() == "#d55e00"
     with pytest.raises(SystemExit):
         main(["plot", str(EX / "10_plot_your_data" / "diffusion.csv"), "--colors", "notacolour"])
+
+
+def test_analyze_page_matches_cli_and_click_adds_peaks(win, tmp_path):
+    import numpy as np
+    from resrijan.analysis import gauss
+    x = np.linspace(0, 100, 400)
+    y = gauss(x, 1, 30, 6) + gauss(x, 0.5, 70, 8)
+    f = tmp_path / "s.csv"
+    f.write_text("x,signal\n" + "\n".join(f"{a},{b}" for a, b in zip(x, y)))
+    p = win.pages["analyze"]
+    win.show_page("analyze")
+    p.auto.setChecked(False)
+    p.open_path(str(f))
+    p.pk_mode.setCurrentIndex(p.pk_mode.findData("auto"))
+    p.shape.setCurrentIndex(p.shape.findData("gauss"))
+    p.preview()
+    assert p.table.rowCount() == 2 and p._map is not None
+    x0, x1, lo, hi = p._map
+    p.pk_list.setText("")
+    p._picked(x0 + (30 - lo) / (hi - lo) * (x1 - x0), 5)
+    assert p.pk_mode.currentData() == "manual" and abs(float(p.pk_list.text()) - 30) < 1
+    a = p.argv()
+    assert a[a.index("--peaks") + 1] == p.pk_list.text().strip() and "--shape" in a
+    p.out.setText(str(tmp_path / "res"))
+    p.formats.set_value("png")
+    p.save()
+    assert (tmp_path / "res_peaks.csv").exists()
+
+
+def test_data_editor_operations_and_save(tmp_path):
+    QtWidgets.QApplication.instance() or QtWidgets.QApplication([])
+    from resrijan.gui.editor import DataEditor, EditData
+    f = tmp_path / "fig_p1_a_data.csv"
+    f.write_text("series,x,y,yerr_minus,yerr_plus,kind,source\n" +
+                 "\n".join(f"A,{i},{i * i},nan,nan,line,vector" for i in range(10)) + "\n" +
+                 "\n".join(f"B,{i},{-i},nan,nan,markers,raster" for i in range(5)) + "\n")
+    ed = DataEditor(str(f))
+    ed._do(ed.data.move_point, 0, 2, 2.0, 5.0)
+    ed._do(ed.data.add_point, 0, 2.5, 6.0)
+    assert list(ed.data.series[0].x[:4]) == [0, 1, 2, 2.5]          # inserted in x order for lines
+    ed._do(ed.data.delete_points, 1, [0])
+    ed.active = 0
+    ed.select(ed.points_in(6, 20, -1, 1000))
+    ed.split("A tail")
+    assert ed.data.names() == ["A", "A tail", "B"] and len(ed.data.series[1].x) == 4
+    ed.active = 0
+    ed.merge("A tail")
+    assert ed.data.names() == ["A", "B"] and len(ed.data.series[0].x) == 11
+    ed.undo()
+    assert ed.data.names() == ["A", "A tail", "B"]
+    ed.redo()
+    out = ed.save()
+    assert out.endswith("fig_p1_a_data_edited.csv")
+    back = EditData.from_csv(out)
+    assert back.names() == ["A", "B"] and back.series[1].kind == "markers" and len(back.series[1].x) == 4
+    log = (tmp_path / "fig_p1_a_data_edited_edits.json").read_text()
+    assert "merged 'A tail' into 'A'" in log
+    ed.close()
+
+
+def test_project_round_trip(win, tmp_path):
+    from resrijan.gui.mainwindow import MainWindow
+    p = win.pages["plot"]
+    p.auto.setChecked(False)
+    p.open_path(str(EX / "10_plot_your_data" / "diffusion.csv"))
+    p.kind.setCurrentText("errorbar")
+    p.style.grid.setChecked(True)
+    p.style.notes.add("arrow", {"x": 290, "y": 3.5, "x1": 318, "y1": 2, "text": "Δ"})
+    p.ytab.cellWidget(0, 5).setCurrentIndex(3)
+    path = win.save_project(path=str(tmp_path / "proj"))
+    assert path.endswith(".resrijan")
+    before = win.project_state()
+    w2 = MainWindow(synchronous=True)
+    w2.open_project(path)
+    after = w2.project_state()
+    assert after["plot"] == before["plot"] and after["analyze"] == before["analyze"]
+    assert w2.pages["plot"].argv() == p.argv()
+    w2.close()

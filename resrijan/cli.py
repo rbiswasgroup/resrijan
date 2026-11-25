@@ -2,6 +2,7 @@
 
   digitize  FILE      extract data from figures (PDF/EPS/PS/SVG/PNG/JPG/TIFF) and replot them
   plot      DATA      plot a data file with a journal template
+  analyze   DATA      baseline, smoothing, normalisation, unit conversion, peak fitting, areas
   compose   SPEC.yaml build a multi-panel figure from a YAML description
   templates           list journal templates
   inspect   FILE      show pages, embedded images and a pixel-ruler image (for manual calibration)
@@ -108,7 +109,86 @@ def plot_spec(a) -> dict:
     if getattr(a, "label_color", None):
         for k in ("xlabel_style", "ylabel_style", "clabel_style"):
             spec[k] = {"color": a.label_color}
+    style_spec(a, spec)
     return spec
+
+
+def _split(v):
+    return [t.strip() for t in v.split(",")] if v else None
+
+
+def style_spec(a, spec: dict) -> dict:
+    """Series and legend styling options shared by ``plot`` and ``analyze``."""
+    if getattr(a, "linestyles", None):
+        spec["linestyles"] = _split(a.linestyles)
+    if getattr(a, "markers", None):
+        spec["markers"] = _split(a.markers)
+    if getattr(a, "linewidth", None):
+        spec["linewidth"] = a.linewidth
+    if getattr(a, "markersize", None):
+        spec["markersize"] = a.markersize
+    if getattr(a, "legend", None):
+        spec["legend"] = a.legend
+    if getattr(a, "legend_frame", False):
+        spec["legend_frame"] = True
+    if getattr(a, "legend_cols", None):
+        spec["legend_ncol"] = a.legend_cols
+    if getattr(a, "grid", False):
+        spec["grid"] = True
+    anns = [parse_text(t) for t in (getattr(a, "text", None) or [])] + \
+           [parse_arrow(t) for t in (getattr(a, "arrow", None) or [])]
+    if anns:
+        spec["annotations"] = spec.get("annotations", []) + anns
+    return spec
+
+
+def figure_style(a) -> dict:
+    st = {}
+    if getattr(a, "font", None):
+        st["font"] = a.font
+    if getattr(a, "font_scale", None):
+        st["font_scale"] = a.font_scale
+    if getattr(a, "line_scale", None):
+        st["line_scale"] = a.line_scale
+    return st
+
+
+def _coord(v: str, what: str) -> float:
+    try:
+        return float(v)
+    except ValueError:
+        raise ValueError(f"{what}: '{v}' is not a number") from None
+
+
+def parse_text(t: str) -> dict:
+    """'x,y,text[,colour]' (data coordinates) – a text label. Use 'axes:x,y,text' for 0–1 axes fractions."""
+    coords = "data"
+    if t.startswith("axes:"):
+        coords, t = "axes fraction", t[5:]
+    parts = t.split(",", 2)
+    if len(parts) < 3:
+        raise ValueError(f"--text '{t}': expected x,y,text")
+    x, y, rest = parts
+    text, col = rest, "k"
+    if "|" in rest:
+        text, col = rest.rsplit("|", 1)
+    return {"xy": [_coord(x, "--text"), _coord(y, "--text")], "text": text, "coords": coords,
+            "color": col.strip() or "k", "ha": "center", "va": "center"}
+
+
+def parse_arrow(t: str) -> dict:
+    """'x0,y0,x1,y1[,text]' – an arrow from (x0, y0) to (x1, y1), with optional text at its tail."""
+    coords = "data"
+    if t.startswith("axes:"):
+        coords, t = "axes fraction", t[5:]
+    parts = t.split(",", 4)
+    if len(parts) < 4:
+        raise ValueError(f"--arrow '{t}': expected x0,y0,x1,y1[,text]")
+    x0, y0, x1, y1 = (_coord(v, "--arrow") for v in parts[:4])
+    text, col = (parts[4] if len(parts) > 4 else ""), "k"
+    if "|" in text:
+        text, col = text.rsplit("|", 1)
+    return {"xy": [x1, y1], "xytext": [x0, y0], "text": text, "coords": coords, "color": col.strip() or "k"}
 
 
 def _check_colors(ap, a):
@@ -124,7 +204,7 @@ def run_plot(a):
     """Plot ``a.data``; returns the list of files written."""
     import matplotlib.pyplot as plt
     from .plot.engine import figure, save
-    fig, _, _ = figure([plot_spec(a)], template=a.template, width=a.width, labels=False)
+    fig, _, _ = figure([plot_spec(a)], template=a.template, width=a.width, labels=False, style=figure_style(a))
     out = a.out or Path(a.data).stem + "_plot"
     if os.path.dirname(out):
         os.makedirs(os.path.dirname(out), exist_ok=True)
@@ -135,6 +215,82 @@ def run_plot(a):
 
 def cmd_plot(a):
     print("\n".join(run_plot(a)))
+
+
+# ───────────────────────────── analyze ─────────────────────────────
+def _num_list(v, what):
+    out = []
+    for t in (v or "").split(","):
+        if t.strip():
+            out.append(_coord(t.strip(), what))
+    return out
+
+
+def analyze_options(a) -> dict:
+    """Keyword arguments for :func:`resrijan.analysis.analyze` from the parsed options."""
+    from .analysis import parse_ranges
+    kw = {}
+    if a.convert:
+        frm, _, to = a.convert.partition(":")
+        if not to:
+            raise ValueError("--convert: expected FROM:TO, e.g. nm:eV")
+        kw["convert"] = (frm, to)
+        kw["jacobian"] = a.jacobian
+    if a.crop:
+        r = parse_ranges(a.crop)
+        if len(r) != 1:
+            raise ValueError("--crop: expected LO:HI")
+        kw["crop"] = r[0]
+    if a.smooth:
+        p = a.smooth.split(":")
+        kw["smooth_opt"] = (p[0], int(p[1]) if len(p) > 1 else 11, int(p[2]) if len(p) > 2 else 3)
+    if a.baseline and a.baseline != "none":
+        p = a.baseline.split(":")
+        m = p[0]
+        bkw = {}
+        if m == "als":
+            if len(p) > 1:
+                bkw["lam"] = float(p[1])
+            if len(p) > 2:
+                bkw["p"] = float(p[2])
+        elif m == "poly":
+            bkw["order"] = int(p[1]) if len(p) > 1 else 2
+        kw["baseline_opt"] = (m, bkw)
+    if a.normalize and a.normalize != "none":
+        kw["normalize_opt"] = a.normalize
+    if a.peaks:
+        if a.peaks.strip() == "auto":
+            kw["auto_peaks"] = True
+        else:
+            kw["peaks"] = _num_list(a.peaks, "--peaks")
+    kw.update(prominence=a.prominence, max_peaks=a.max_peaks, shape=a.shape)
+    if a.area:
+        kw["areas"] = parse_ranges(a.area)
+    return kw
+
+
+def run_analyze(a):
+    """Analyse every selected series of ``a.data``; returns [(Analysis, files)]."""
+    from .analysis import analyze, load_series, write
+    out = a.out or (Path(a.data).stem + "_analysis")
+    kw = analyze_options(a)
+    res = []
+    series = load_series(a.data, x=a.x, y=a.y, series=a.series)
+    for name, x, y in series:
+        an = analyze(x, y, name=name, **kw)
+        safe = "".join(c if c.isalnum() or c in "-_" else "_" for c in name)
+        base = os.path.join(out, safe) if len(series) > 1 or os.path.isdir(out) else out
+        files = write(an, base, template=a.template, formats=_formats(a.formats), width=a.width,
+                      xlabel=a.xlabel, ylabel=a.ylabel)
+        res.append((an, files))
+    return res
+
+
+def cmd_analyze(a):
+    from .analysis import summary_lines
+    for an, files in run_analyze(a):
+        print("\n".join(summary_lines(an)))
+        print("  files: " + ", ".join(str(v) if not isinstance(v, list) else ", ".join(v) for v in files.values()))
 
 
 # ───────────────────────────── compose ─────────────────────────────
@@ -276,11 +432,35 @@ def build_parser() -> argparse.ArgumentParser:
     p.add_argument("--nm-per-px", type=float, help="image pixel size for a scale bar")
     p.add_argument("--colors", help="series colours in order, comma separated, e.g. '#1b9e77,,navy' (empty: the template's palette)")
     p.add_argument("--label-color", help="colour of the axis and colour-bar titles")
+    add_style_args(p)
     p.add_argument("-t", "--template", default="natchem")
     p.add_argument("--width", default="single")
     p.add_argument("-o", "--out")
     p.add_argument("-f", "--formats", default="pdf,svg,png")
     p.set_defaults(fn=cmd_plot)
+
+    n = sub.add_parser("analyze", aliases=["analyse"], help="baseline, smoothing, normalisation, unit conversion, peak fitting, areas")
+    n.add_argument("data", help="table (CSV/TSV/text) – e.g. a digitised *_data.csv")
+    n.add_argument("-x", help="x column (default: the first, or 'x' in ReSrijan data files)")
+    n.add_argument("-y", help="y column(s), comma separated (default: all)")
+    n.add_argument("--series", help="analyse only this series (name in a ReSrijan data file, or a y column)")
+    n.add_argument("--convert", help="x unit conversion FROM:TO among nm, um, cm-1, eV, THz, e.g. nm:eV")
+    n.add_argument("--jacobian", action="store_true", help="with --convert: scale intensities by |dλ/dE| (spectral densities)")
+    n.add_argument("--crop", help="keep x between LO:HI (after conversion)")
+    n.add_argument("--smooth", help="savgol[:window[:order]] or mean[:window], e.g. savgol:11:3")
+    n.add_argument("--baseline", help="als[:lambda[:p]], poly[:order], ends or none (e.g. als:1e5:0.01)")
+    n.add_argument("--normalize", "--normalise", choices=["max", "area", "minmax", "none"])
+    n.add_argument("--peaks", help="'auto' or peak positions to fit, e.g. 1450,1600")
+    n.add_argument("--shape", default="voigt", choices=["gauss", "lorentz", "voigt"], help="peak shape (default: pseudo-Voigt)")
+    n.add_argument("--prominence", type=float, default=0.05, help="with --peaks auto: minimum prominence as a fraction of the range")
+    n.add_argument("--max-peaks", type=int, default=10)
+    n.add_argument("--area", help="integrate over LO:HI ranges, comma separated, e.g. 400:500,600:700")
+    n.add_argument("--xlabel"); n.add_argument("--ylabel")
+    n.add_argument("-t", "--template", default="natchem")
+    n.add_argument("--width", default="single")
+    n.add_argument("-o", "--out", help="output base name or folder (default: <data>_analysis)")
+    n.add_argument("-f", "--formats", default="pdf,svg,png")
+    n.set_defaults(fn=cmd_analyze)
 
     c = sub.add_parser("compose", help="multi-panel figure from a YAML spec")
     c.add_argument("spec"); c.add_argument("-o", "--out"); c.add_argument("-f", "--formats")
@@ -303,10 +483,50 @@ def build_parser() -> argparse.ArgumentParser:
     return ap
 
 
+def add_style_args(p):
+    g = p.add_argument_group("style")
+    g.add_argument("--linestyles", help="per series: solid, dashed, dotted, dashdot or none, comma separated")
+    g.add_argument("--markers", help="per series: circle, square, triangle, down, diamond, star, cross, none … (or matplotlib codes)")
+    g.add_argument("--linewidth", type=float, help="line width in points (all series)")
+    g.add_argument("--markersize", type=float, help="marker size in points (all series)")
+    g.add_argument("--legend", help="legend position: best, upper right, … , outside right, outside top, none")
+    g.add_argument("--legend-frame", action="store_true", help="draw a frame around the legend")
+    g.add_argument("--legend-cols", type=int, help="number of legend columns")
+    g.add_argument("--grid", action="store_true", help="light dashed grid")
+    g.add_argument("--font", help="font family, e.g. Arial, Helvetica, 'Times New Roman' (default: the journal's)")
+    g.add_argument("--font-scale", type=float, help="scale all text sizes, e.g. 1.2")
+    g.add_argument("--line-scale", type=float, help="scale line widths and marker sizes, e.g. 1.5")
+    g.add_argument("--text", action="append", help="text label 'x,y,text' in data units (or 'axes:x,y,text'); "
+                   "add '|colour' for colour; repeatable")
+    g.add_argument("--arrow", action="append", help="arrow 'x0,y0,x1,y1[,text]' from (x0,y0) to (x1,y1); repeatable")
+
+
+def _check_style(ap, a):
+    from .plot.engine import LEGEND_LOCS
+    if getattr(a, "legend", None) and a.legend not in LEGEND_LOCS:
+        ap.error(f"--legend: '{a.legend}' is not one of: " + ", ".join(LEGEND_LOCS))
+    for t in getattr(a, "text", None) or []:
+        try:
+            parse_text(t)
+        except ValueError as exc:
+            ap.error(str(exc))
+    for t in getattr(a, "arrow", None) or []:
+        try:
+            parse_arrow(t)
+        except ValueError as exc:
+            ap.error(str(exc))
+    if a.cmd in ("analyze", "analyse"):
+        try:
+            analyze_options(a)
+        except (ValueError, IndexError) as exc:
+            ap.error(str(exc))
+
+
 def main(argv=None):
     ap = build_parser()
     a = ap.parse_args(argv)
     _check_colors(ap, a)
+    _check_style(ap, a)
     return a.fn(a) or 0
 
 

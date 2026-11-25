@@ -228,3 +228,17 @@ class ComposePage(Page):
                 self.view.view.set_image(png)
 
         self.win.runner.run("Building figure", job, done, lambda m: self.error("Compose failed", m))
+
+    # project files: the spec text itself is stored (it may not have been saved to a file yet)
+    def state(self) -> dict:
+        return {"spec": self.path, "text": self.editor.toPlainText(), "out": self.out.text(),
+                "own_formats": self.own_formats.isChecked(), "formats": self.formats.value()}
+
+    def set_state(self, s: dict):
+        self.path = s.get("spec", "") or ""
+        self.editor.setPlainText(s.get("text", ""))
+        self.out.setText(s.get("out", ""))
+        self.own_formats.setChecked(bool(s.get("own_formats")))
+        if s.get("formats"):
+            self.formats.set_value(s["formats"])
+        self.update_command()

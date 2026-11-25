@@ -38,6 +38,12 @@ _P = {
     "duplicate": '<rect x="8" y="8" width="12" height="12" rx="2"/><path d="M4 16V5a1 1 0 0 1 1-1h11"/><path d="M14 11v6M11 14h6"/>',
     "delete": '<path d="M4 7h16M9 7V4h6v3M6 7l1 13h10l1-13"/>',
     "refresh": '<path d="M20 11a8 8 0 1 0-2.3 5.7"/><path d="M20 4v7h-7"/>',
+    # peaks under a fitted envelope: analyze
+    "analyze": '<path d="M3 20h18"/><path d="M3 18c3 0 3.5-11 6-11s2.5 9 4.5 9 2-6 3.5-6 2 8 4 8"/>',
+    # crosshair on a peak: place a peak
+    "peak": '<path d="M4 19c4 0 5-13 8-13s4 13 8 13"/><path d="M12 2v6M9 5h6"/>',
+    # pencil: edit data
+    "edit": '<path d="M4 20l1-5L16 4l4 4L9 19z"/><path d="M13 7l4 4"/>',
     "terminal": '<rect x="3" y="4" width="18" height="16" rx="2"/><path d="M7 9l3 3-3 3M12 15h5"/>',
 }
 

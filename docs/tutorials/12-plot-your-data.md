@@ -47,6 +47,31 @@ resrijan plot diffusion.csv --kind errorbar -x T_K -y D_urea,D_water --yerr err_
 
 `resrijan digitize` takes `--label-color` as well; without it, the replot keeps the title colour read from the figure.
 
+## Line styles, markers, legend, fonts and labels
+
+Every series can have its own line style and marker; the legend can go anywhere (also outside the plot), and text labels and arrows are placed in data coordinates:
+
+```bash
+resrijan plot diffusion.csv --kind errorbar -x T_K -y D_urea,D_water --yerr err_urea,err_water \
+    --linestyles dashed, --markers square,diamond --legend "upper left" --legend-frame \
+    --text '300,4.6,$E_a$ = 18 kJ mol$^{-1}$|#0072B2' --arrow '322,2.2,333,1.2,urea' -o output/diffusion_styled
+```
+
+| option | effect |
+|---|---|
+| `--linestyles` | per series: `solid`, `dashed`, `dotted`, `dashdot` or `none`, comma separated (empty: automatic) |
+| `--markers` | per series: `circle`, `square`, `triangle`, `down`, `diamond`, `pentagon`, `hexagon`, `star`, `plus`, `cross`, `dot`, `none` |
+| `--linewidth`, `--markersize` | in points, for all series |
+| `--legend` | `best`, `upper right`, `lower left`, … , `outside right`, `outside top` or `none` |
+| `--legend-frame`, `--legend-cols N` | a frame, and several columns |
+| `--grid` | a light dashed grid |
+| `--font NAME` | another font family (default: the journal's) |
+| `--font-scale F`, `--line-scale F` | scale all text, or all lines and markers |
+| `--text 'x,y,text'` | a label at (x, y) in data units; `axes:x,y,text` uses 0–1 axes fractions; add `\|colour` |
+| `--arrow 'x0,y0,x1,y1,text'` | an arrow from (x0, y0) to (x1, y1), with optional text at its tail; repeatable |
+
+Compose specs (tutorial 13) take the same per-panel keys (`linestyles`, `markers`, `legend`, `legend_frame`, `annotations`) and figure keys (`font`, `font_scale`, `line_scale`).
+
 ## Kinds of plot
 
 | `--kind` | data |

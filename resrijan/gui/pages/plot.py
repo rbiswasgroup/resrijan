@@ -13,6 +13,7 @@ from ... import cli
 from ..icons import icon
 from ..render import plot_preview
 from ..widgets import CommandBar, FormatChecks, ImagePanel, PathEdit, TemplateCombo, WidthCombo, primary_button
+from ..style import LINESTYLE_CHOICES, MARKER_CHOICES, StyleBox, style_combo
 from ..textedit import ColorButton, MathLineEdit
 from .base import Page
 
@@ -47,8 +48,8 @@ class PlotPage(Page):
         self.c_group = c.parentWidget()
         self.x = QComboBox()
         c.addRow("x", self.x)
-        self.ytab = QTableWidget(0, 4)
-        self.ytab.setHorizontalHeaderLabels(["Plot", "y column", "error bars", "colour"])
+        self.ytab = QTableWidget(0, 6)
+        self.ytab.setHorizontalHeaderLabels(["Plot", "y column", "error bars", "colour", "line", "marker"])
         self.ytab.verticalHeader().setVisible(False)
         self.ytab.horizontalHeader().setStretchLastSection(True)
         self.ytab.setMinimumHeight(130)
@@ -91,7 +92,11 @@ class PlotPage(Page):
         self.nm.setSuffix(" nm/px")
         a.addRow("Image pixel", self.nm)
 
-        s = self.group("Style and output", opts)
+        self.style = StyleBox("Look")
+        self.style.changed.connect(self.changed)
+        opts.addWidget(self.style)
+
+        s = self.group("Journal and output", opts)
         self.template = TemplateCombo()
         self.template.set_value(P.get("template"))
         s.addRow("Journal", self.template)
@@ -191,8 +196,14 @@ class PlotPage(Page):
             col = ColorButton()
             col.changed.connect(self.changed)
             self.ytab.setCellWidget(i, 3, col)
+            ls = style_combo(LINESTYLE_CHOICES, "Line style of this series")
+            mk = style_combo(MARKER_CHOICES, "Marker of this series")
+            for cb in (ls, mk):
+                cb.currentIndexChanged.connect(self.changed)
+            self.ytab.setCellWidget(i, 4, ls)
+            self.ytab.setCellWidget(i, 5, mk)
         self.ytab.blockSignals(False)
-        for c in (0, 1, 3):
+        for c in (0, 1, 3, 4, 5):
             self.ytab.resizeColumnToContents(c)
 
     def _kind_changed(self, kind: str):
@@ -208,6 +219,10 @@ class PlotPage(Page):
     # ───────────────────────── command ─────────────────────────
     def _colors(self):
         return [self.ytab.cellWidget(r, 3).value() for r in range(self.ytab.rowCount())
+                if self.ytab.item(r, 0).checkState() == Qt.Checked]
+
+    def _per_series(self, col: int):
+        return [self.ytab.cellWidget(r, col).currentData() or "" for r in range(self.ytab.rowCount())
                 if self.ytab.item(r, 0).checkState() == Qt.Checked]
 
     def _y_and_err(self):
@@ -239,6 +254,10 @@ class PlotPage(Page):
                 cols = self._colors()
                 if any(cols):
                     a += ["--colors", ",".join(cols)]
+                for flag, col in (("--linestyles", 4), ("--markers", 5)):
+                    v = self._per_series(col)
+                    if any(v):
+                        a += [flag, ",".join(v)]
         for flag, e in (("--xlabel", self.xlabel), ("--ylabel", self.ylabel), ("--clabel", self.clabel),
                         ("--xlim", self.xlim), ("--ylim", self.ylim)):
             if e.isEnabled() and e.text().strip():
@@ -252,6 +271,7 @@ class PlotPage(Page):
             a += ["--nm-per-px", f"{self.nm.value():g}"]
         if self.label_color.value():
             a += ["--label-color", self.label_color.value()]
+        a += self.style.argv()
         if self.template.value() and self.template.value() != "natchem":
             a += ["-t", self.template.value()]
         if self.width.value() != "single":
@@ -262,6 +282,59 @@ class PlotPage(Page):
         if self.formats.value() != "pdf,svg,png":
             a += ["-f", self.formats.value()]
         return a
+
+    # ───────────────────────── project files ─────────────────────────
+    def state(self) -> dict:
+        rows = []
+        for r in range(self.ytab.rowCount()):
+            rows.append({"column": self.ytab.item(r, 1).text(),
+                         "plot": self.ytab.item(r, 0).checkState() == Qt.Checked,
+                         "err": self.ytab.cellWidget(r, 2).currentText(), "color": self.ytab.cellWidget(r, 3).value(),
+                         "linestyle": self.ytab.cellWidget(r, 4).currentData() or "",
+                         "marker": self.ytab.cellWidget(r, 5).currentData() or ""})
+        return {"data": self.data.text(), "kind": self.kind.currentText(), "x": self.x.currentText(),
+                "column": self.column.currentText(), "y": rows, "xlabel": self.xlabel.text(),
+                "ylabel": self.ylabel.text(), "clabel": self.clabel.text(), "label_color": self.label_color.value(),
+                "xscale": self.xscale.currentData(), "yscale": self.yscale.currentData(), "xlim": self.xlim.text(),
+                "ylim": self.ylim.text(), "cmap": self.cmap.currentText(), "nm_per_px": self.nm.value(),
+                "style": self.style.state(), "template": self.template.value(), "width": self.width.value(),
+                "formats": self.formats.value(), "out": self.out.text()}
+
+    def set_state(self, s: dict):
+        from ..project import set_combo
+        if s.get("data"):
+            if not Path(s["data"]).is_file():
+                raise FileNotFoundError(f"data file not found: {s['data']}")
+            self.open_path(s["data"])
+        self.kind.setCurrentText(s.get("kind", "line"))
+        set_combo(self.x, s.get("x"))
+        set_combo(self.column, s.get("column"))
+        for row in s.get("y", []):
+            r = next((i for i in range(self.ytab.rowCount()) if self.ytab.item(i, 1).text() == row.get("column")), None)
+            if r is None:
+                continue
+            self.ytab.item(r, 0).setCheckState(Qt.Checked if row.get("plot") else Qt.Unchecked)
+            self.ytab.cellWidget(r, 2).setCurrentText(row.get("err", ""))
+            self.ytab.cellWidget(r, 3).set_value(row.get("color", ""))
+            set_combo(self.ytab.cellWidget(r, 4), row.get("linestyle", ""))
+            set_combo(self.ytab.cellWidget(r, 5), row.get("marker", ""))
+        for e, k in ((self.xlabel, "xlabel"), (self.ylabel, "ylabel"), (self.clabel, "clabel"),
+                     (self.xlim, "xlim"), (self.ylim, "ylim")):
+            e.setText(s.get(k, ""))
+        self.label_color.set_value(s.get("label_color", ""))
+        set_combo(self.xscale, s.get("xscale", ""))
+        set_combo(self.yscale, s.get("yscale", ""))
+        self.cmap.setCurrentText(s.get("cmap", ""))
+        self.nm.setValue(float(s.get("nm_per_px", 0)))
+        self.style.set_state(s.get("style", {}))
+        if s.get("template"):
+            self.template.set_value(s["template"])
+        if s.get("width"):
+            self.width.setCurrentText(s["width"])
+        if s.get("formats"):
+            self.formats.set_value(s["formats"])
+        self.out.setText(s.get("out", ""))
+        self.changed()
 
     def changed(self, *_):
         self.cmd.set_argv(self.argv())

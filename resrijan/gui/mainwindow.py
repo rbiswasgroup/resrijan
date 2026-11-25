@@ -12,6 +12,7 @@ from PySide6.QtWidgets import (QButtonGroup, QFileDialog, QHBoxLayout, QLabel, Q
 from .. import __version__
 from .icons import icon, nav_icon
 from .jobs import JobRunner
+from .pages.analyze import AnalyzePage
 from .pages.compose import ComposePage
 from .pages.digitize import DigitizePage
 from .pages.inspect import InspectPage
@@ -61,7 +62,7 @@ class MainWindow(QMainWindow):
         # pages
         self.pages = {}
         self.stack = QStackedWidget()
-        for key, cls in (("digitize", DigitizePage), ("plot", PlotPage), ("compose", ComposePage),
+        for key, cls in (("digitize", DigitizePage), ("plot", PlotPage), ("analyze", AnalyzePage), ("compose", ComposePage),
                          ("templates", TemplatesPage), ("inspect", InspectPage), ("settings", SettingsPage)):
             page = cls(self)
             self.pages[key] = page
@@ -131,7 +132,9 @@ class MainWindow(QMainWindow):
         """Route a file to the page that handles it."""
         p = Path(path)
         ext = p.suffix.lower()
-        if ext in (".yaml", ".yml"):
+        if ext == ".resrijan":
+            self.open_project(path)
+        elif ext in (".yaml", ".yml"):
             try:
                 import yaml
                 y = yaml.safe_load(p.read_text()) or {}
@@ -152,6 +155,19 @@ class MainWindow(QMainWindow):
         m.addAction(act)
         self.recent_menu = m.addMenu("Open &recent")
         self.recent_menu.aboutToShow.connect(self._fill_recent)
+        m.addSeparator()
+        for text, key, fn in (("Open &project…", "Ctrl+Shift+O", self.open_project),
+                              ("&Save project", "Ctrl+S", self.save_project),
+                              ("Save project &as…", "Ctrl+Shift+S", lambda: self.save_project(ask=True))):
+            a = QAction(text, self)
+            a.setShortcut(QKeySequence(key))
+            a.triggered.connect(fn)
+            m.addAction(a)
+        m.addSeparator()
+        ed = QAction("&Edit data file…", self)
+        ed.setShortcut(QKeySequence("Ctrl+E"))
+        ed.triggered.connect(self.edit_data_dialog)
+        m.addAction(ed)
         m.addSeparator()
         q = QAction("&Quit", self)
         q.setShortcut(QKeySequence.Quit)
@@ -178,6 +194,76 @@ class MainWindow(QMainWindow):
         ab.triggered.connect(lambda: self.show_page("settings"))
         hm.addAction(ab)
 
+    def edit_data_dialog(self, path: str = ""):
+        from .editor import DataEditor
+        if not path:
+            path, _ = QFileDialog.getOpenFileName(self, "Edit data file", str(Path.home()),
+                                                  "Data (*.csv *.tsv *.txt *.dat);;All files (*)")
+        if not path:
+            return None
+        try:
+            dlg = DataEditor(path, title=Path(path).name, parent=self)
+        except Exception as exc:  # noqa: BLE001
+            from PySide6.QtWidgets import QMessageBox
+            QMessageBox.critical(self, "Edit data", str(exc))
+            return None
+        dlg.saved.connect(lambda out: self.status(f"Saved edited data: {Path(out).name}"))
+        self.editor = dlg
+        dlg.show()
+        return dlg
+
+    # ───────────────────────── projects ─────────────────────────
+    project_path = None
+
+    def project_state(self) -> dict:
+        return {k: p.state() for k, p in self.pages.items() if hasattr(p, "state")}
+
+    def save_project(self, ask: bool = False, path: str = ""):
+        from . import project
+        path = path or (None if ask else self.project_path)
+        if not path:
+            start = self.project_path or str(Path.home() / ("figure" + project.EXT))
+            path, _ = QFileDialog.getSaveFileName(self, "Save project", start, f"ReSrijan project (*{project.EXT})")
+            if not path:
+                return None
+        cur = next((k for k, p in self.pages.items() if p is self.stack.currentWidget()), "digitize")
+        path = project.save(path, self.project_state(), cur)
+        self.project_path = path
+        self.setWindowTitle(f"ReSrijan – {Path(path).name}")
+        self.prefs.add_recent(path)
+        self.status(f"Project saved: {path}")
+        return path
+
+    def open_project(self, path: str = ""):
+        from . import project
+        if not path:
+            path, _ = QFileDialog.getOpenFileName(self, "Open project", str(Path.home()),
+                                                  f"ReSrijan project (*{project.EXT});;All files (*)")
+        if not path:
+            return
+        try:
+            doc = project.load(path)
+        except Exception as exc:  # noqa: BLE001
+            from PySide6.QtWidgets import QMessageBox
+            QMessageBox.critical(self, "Open project", str(exc))
+            return
+        missing = []
+        for key, st in doc["pages"].items():
+            page = self.pages.get(key)
+            if page is not None and hasattr(page, "set_state"):
+                try:
+                    page.set_state(st)
+                except Exception as exc:  # noqa: BLE001
+                    missing.append(f"{page.title}: {exc}")
+        self.project_path = path
+        self.setWindowTitle(f"ReSrijan – {Path(path).name}")
+        self.prefs.add_recent(path)
+        if doc.get("current_page") in self.pages:
+            self.show_page(doc["current_page"])
+        self.status(f"Project opened: {Path(path).name}" + (f" ({len(missing)} problem(s), see the log)" if missing else ""))
+        for m in missing:
+            self.log.add(m)
+
     def _fill_recent(self):
         self.recent_menu.clear()
         rec = self.prefs.recent()
@@ -190,7 +276,7 @@ class MainWindow(QMainWindow):
     def open_dialog(self):
         p, _ = QFileDialog.getOpenFileName(self, "Open", str(Path.home()),
                                            "All supported (*.pdf *.eps *.ps *.svg *.svgz *.png *.jpg *.jpeg *.tif *.tiff "
-                                           "*.bmp *.gif *.webp *.csv *.tsv *.txt *.dat *.npz *.yaml *.yml);;All files (*)")
+                                           "*.bmp *.gif *.webp *.csv *.tsv *.txt *.dat *.npz *.yaml *.yml *.resrijan);;All files (*)")
         if p:
             self.open_any(p)
 
