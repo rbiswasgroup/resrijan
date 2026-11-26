@@ -539,7 +539,7 @@ def cmd_doctor(a):
 
 # ───────────────────────────── parser ─────────────────────────────
 def build_parser() -> argparse.ArgumentParser:
-    ap = argparse.ArgumentParser(prog="resrijan", description="ReSrijan – literature figure digitiser and journal figure engine")
+    ap = argparse.ArgumentParser(prog="resrijan", description="ReSrijan – digitise, analyse, fit and redraw scientific figures in journal style")
     ap.add_argument("--version", action="version", version=f"resrijan {__version__}")
     sub = ap.add_subparsers(dest="cmd", required=True)
 

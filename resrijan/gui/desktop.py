@@ -28,7 +28,7 @@ def install_entry() -> Path:
         "Type=Application\n"
         "Name=ReSrijan\n"
         "GenericName=Figure digitiser\n"
-        "Comment=Turn published scientific figures back into data and redraw them in journal style\n"
+        "Comment=Digitise, analyse, fit and redraw scientific figures in journal style\n"
         f"Exec={sys.executable} -m resrijan gui %f\n"
         "Icon=resrijan\n"
         "Terminal=false\n"

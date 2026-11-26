@@ -1,6 +1,6 @@
 cff-version: 1.2.0
 message: "If you use ReSrijan, please cite it as below."
-title: "ReSrijan: recreating scientific figures – data from published figures, redrawn in journal style"
+title: "ReSrijan: digitise, analyse, fit and redraw scientific figures in journal style"
 type: software
 authors:
   - family-names: Biswas
@@ -12,9 +12,10 @@ license: AGPL-3.0-or-later
 repository-code: "https://github.com/rbiswasgroup/resrijan"
 url: "https://github.com/rbiswasgroup/resrijan"
 abstract: >-
-  ReSrijan extracts numerical data from published scientific figures (PDF, EPS, SVG and bitmaps)
-  and redraws them in journal style; it also plots, analyses (baseline, peak fitting, deconvolution)
-  and fits user data. One code base, distributed as a Python package for Linux and macOS
+  ReSrijan extracts numerical data from published scientific figures (PDF, EPS, SVG and bitmaps),
+  lets the user correct them by hand, analyses spectra and curves (baseline, peak fitting with
+  errors, deconvolution of overlapping bands), fits any model with bounds (time constants,
+  diffusion coefficients), and draws journal-style figures from extracted or new data. One code base, distributed as a Python package for Linux and macOS
   (PyPI: resrijan) and as a self-contained Windows 10/11 installer (ReSrijan-<version>-Setup.exe on
   the GitHub releases page). Cite the version you used.
 identifiers:

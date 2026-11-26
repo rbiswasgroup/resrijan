@@ -1,4 +1,4 @@
-"""ReSrijan (पुनःसृजन, "re-creation") – turn published scientific figures back into data and redraw them in journal style."""
+"""ReSrijan (पुनःसृजन, "re-creation") – digitise, analyse, fit and redraw scientific figures in journal style."""
 __version__ = "0.6.0"
 
 from ._platform import setup_bundled_tools as _setup_tools  # noqa: E402

@@ -5,19 +5,21 @@
   </picture>
 </p>
 
-<p align="center"><b>Turn published scientific figures back into data, and redraw them in any journal's style.</b></p>
+<p align="center"><b>Digitise, analyse, fit and redraw scientific figures in journal style.</b><br>Data from published figures – corrected, analysed, fitted – and new figures in any journal's style.</p>
 
 <p align="center">
 <a href="https://github.com/rbiswasgroup/resrijan/actions/workflows/ci.yml"><img src="https://github.com/rbiswasgroup/resrijan/actions/workflows/ci.yml/badge.svg" alt="CI"></a>
 <a href="https://pypi.org/project/resrijan/"><img src="https://img.shields.io/pypi/v/resrijan" alt="PyPI"></a>
 <img src="https://img.shields.io/badge/python-3.10%2B-blue" alt="Python 3.10+">
-<img src="https://img.shields.io/badge/platform-Ubuntu%20%7C%20Linux-orange" alt="Linux">
+<img src="https://img.shields.io/badge/platform-Windows%20%7C%20Linux%20%7C%20macOS-orange" alt="Windows | Linux | macOS">
 <a href="https://github.com/rbiswasgroup/resrijan/blob/main/LICENSE"><img src="https://img.shields.io/badge/License-AGPL_v3-blue.svg" alt="AGPL v3"></a>
 </p>
 
 ReSrijan reads a figure from a paper (PDF, EPS, PS, SVG, PNG, JPG or TIFF) and finds every panel in it. It reads the axes, then extracts the data from each panel: curves, symbols with error bars, bar charts, heat maps, 2D spectra, contour plots, stacked spectra, and micrographs with their scale bars, insets and drawn measurements. It checks the result for inconsistencies and writes CSV files, an HTML report that overlays the extracted data on the original figure, and a clean replot in the style of Nature Chemistry, ACS, APS, JCP, Science, PNAS or RSC. Replots come as editable vector files (PDF, SVG, EPS) or as bitmaps (PNG, TIFF).
 
-It is also a figure engine on its own: give it your raw data and it builds a multi-panel figure, arranges the panels automatically and labels them in the journal's style.
+The extracted data – or your own measurements – can then be corrected by hand over the original figure, analysed (baseline, smoothing, unit conversion, peak fitting with errors, deconvolution of overlapping bands) and fitted with any model, with bounds and a fit range: time constants from correlation functions, diffusion coefficients from mean square displacements, activation energies and more.
+
+It is also a figure engine on its own: give it your data and it builds a multi-panel figure, arranges the panels automatically and labels them in the journal's style. Every step works from the command line and from a graphical interface, on Windows, Linux and macOS.
 
 Everything runs locally. No uploads, no web service.
 
@@ -240,13 +242,13 @@ Bug reports with a sample figure are the most useful contribution, together with
 
 If ReSrijan helps your work, please cite it. The Linux, macOS and Python version (`pip install resrijan`, `./install.sh`) and the Windows installer are the same program built from the same source, so they share one citation; give the version you used, and the platform if you like.
 
-> Biswas, R. (2026). *ReSrijan: recreating scientific figures – data from published figures, redrawn in journal style* (Version 0.6.0) [Computer software]. Indian Institute of Technology Tirupati. https://github.com/rbiswasgroup/resrijan
+> Biswas, R. (2026). *ReSrijan: digitise, analyse, fit and redraw scientific figures in journal style* (Version 0.6.0) [Computer software]. Indian Institute of Technology Tirupati. https://github.com/rbiswasgroup/resrijan
 
 ```bibtex
 @software{biswas_resrijan_2026,
   author    = {Biswas, Rajib},
-  title     = {{ReSrijan}: recreating scientific figures -- data from published figures,
-               redrawn in journal style},
+  title     = {{ReSrijan}: digitise, analyse, fit and redraw scientific figures
+               in journal style},
   year      = {2026},
   version   = {0.6.0},
   publisher = {Indian Institute of Technology Tirupati},
