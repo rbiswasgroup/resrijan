@@ -33,7 +33,7 @@ VIAddVersionKey "LegalCopyright" "GNU AGPL v3 or later"
 !define MUI_WELCOMEPAGE_TITLE "ReSrijan ${VERSION}"
 !define MUI_WELCOMEPAGE_TEXT "ReSrijan (पुनःसृजन, $\"re-creation$\") turns published scientific figures (PDF, EPS, SVG, PNG, JPG) back into data and redraws them in journal style.$\r$\n$\r$\nEverything it needs is included: Python, the figure engine, Tesseract OCR and Ghostscript. Nothing is uploaded anywhere.$\r$\n$\r$\nReSrijan is installed for your user account only; no administrator rights are needed."
 !define MUI_FINISHPAGE_RUN "$INSTDIR\runtime\pythonw.exe"
-!define MUI_FINISHPAGE_RUN_PARAMETERS "-m resrijan gui"
+!define MUI_FINISHPAGE_RUN_PARAMETERS "-m resrijan._winlaunch"
 !define MUI_FINISHPAGE_RUN_TEXT "Start ReSrijan"
 !define MUI_FINISHPAGE_LINK "Tutorials and source code"
 !define MUI_FINISHPAGE_LINK_LOCATION "https://github.com/rbiswasgroup/resrijan"
@@ -64,8 +64,12 @@ Section "ReSrijan (required)" SecMain
   WriteUninstaller "$INSTDIR\Uninstall ReSrijan.exe"
 
   CreateDirectory "$SMPROGRAMS\ReSrijan"
-  CreateShortcut "$SMPROGRAMS\ReSrijan\ReSrijan.lnk" "$INSTDIR\runtime\pythonw.exe" "-m resrijan gui" "$INSTDIR\resrijan.ico" 0 SW_SHOWNORMAL "" "Turn published figures back into data"
+  CreateShortcut "$SMPROGRAMS\ReSrijan\ReSrijan.lnk" "$INSTDIR\runtime\pythonw.exe" "-m resrijan._winlaunch" "$INSTDIR\resrijan.ico" 0 SW_SHOWNORMAL "" "Turn published figures back into data"
   CreateShortcut "$SMPROGRAMS\ReSrijan\ReSrijan command prompt.lnk" "$SYSDIR\cmd.exe" '/k "set PATH=$INSTDIR;%PATH% && cd /d %USERPROFILE% && echo ReSrijan command line - try:  resrijan --help"' "$INSTDIR\resrijan.ico" 0
+  ; troubleshooting: the self-check and the GUI in a console that stays open, and the log folder
+  CreateShortcut "$SMPROGRAMS\ReSrijan\ReSrijan - troubleshoot.lnk" "$SYSDIR\cmd.exe" '/k ""$INSTDIR\runtime\python.exe" -X faulthandler -m resrijan doctor & echo. & echo Starting the GUI (errors appear below) ... & "$INSTDIR\runtime\python.exe" -X faulthandler -m resrijan gui"' "$INSTDIR\resrijan.ico" 0 SW_SHOWNORMAL "" "Check the installation and start ReSrijan with a console"
+  CreateDirectory "$LOCALAPPDATA\ReSrijan\logs"
+  CreateShortcut "$SMPROGRAMS\ReSrijan\ReSrijan - logs.lnk" "$WINDIR\explorer.exe" '"$LOCALAPPDATA\ReSrijan\logs"' "" 0 SW_SHOWNORMAL "" "The start-up log of the ReSrijan window"
   CreateShortcut "$SMPROGRAMS\ReSrijan\Uninstall ReSrijan.lnk" "$INSTDIR\Uninstall ReSrijan.exe"
 
   WriteRegStr HKCU "Software\ReSrijan" "InstallDir" "$INSTDIR"
@@ -80,12 +84,12 @@ Section "ReSrijan (required)" SecMain
   WriteRegDWORD HKCU "${UNINST}" "NoModify" 1
   WriteRegDWORD HKCU "${UNINST}" "NoRepair" 1
   ; "Open with → ReSrijan" for figures
-  WriteRegStr HKCU "Software\Classes\Applications\ReSrijan.figure\shell\open\command" "" '"$INSTDIR\runtime\pythonw.exe" -m resrijan gui "%1"'
+  WriteRegStr HKCU "Software\Classes\Applications\ReSrijan.figure\shell\open\command" "" '"$INSTDIR\runtime\pythonw.exe" -m resrijan._winlaunch "%1"'
   WriteRegStr HKCU "Software\Classes\Applications\ReSrijan.figure" "FriendlyAppName" "ReSrijan"
 SectionEnd
 
 Section "Desktop shortcut" SecDesktop
-  CreateShortcut "$DESKTOP\ReSrijan.lnk" "$INSTDIR\runtime\pythonw.exe" "-m resrijan gui" "$INSTDIR\resrijan.ico" 0
+  CreateShortcut "$DESKTOP\ReSrijan.lnk" "$INSTDIR\runtime\pythonw.exe" "-m resrijan._winlaunch" "$INSTDIR\resrijan.ico" 0
 SectionEnd
 
 !insertmacro MUI_FUNCTION_DESCRIPTION_BEGIN
