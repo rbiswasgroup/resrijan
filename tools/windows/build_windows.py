@@ -19,6 +19,7 @@ from __future__ import annotations
 
 import argparse
 import asyncio
+import os
 import re
 import shutil
 import subprocess
@@ -45,7 +46,7 @@ WHEELS = ["opencv-python-headless==5.1.*"]
 PRUNE_DIRS = ["Library/include", "Library/share/doc", "Library/share/man", "Library/share/gtk-doc", "include",
               "Library/share/info", "pkgs", "Library/cmake", "Library/lib/cmake", "Library/lib/pkgconfig"]
 PRUNE_GLOBS = ["**/__pycache__", "Lib/site-packages/*/tests", "Lib/site-packages/*/*/tests",
-               "Lib/site-packages/*/testing", "Lib/test", "Lib/idlelib", "Lib/tkinter", "Lib/turtledemo",
+               "Lib/test", "Lib/idlelib", "Lib/tkinter", "Lib/turtledemo",
                "Lib/site-packages/PySide6/examples", "Lib/site-packages/PySide6/include",
                "Library/lib/*.lib", "**/*.pdb", "Lib/site-packages/PySide6/Qt*Designer*",
                "Lib/site-packages/PySide6/designer.exe", "Lib/site-packages/PySide6/linguist.exe",
@@ -310,6 +311,10 @@ def main():
         prune(app / "runtime")
         relocate(app / "runtime")
     add_resrijan(app)
+    # every module ReSrijan imports must be in the runtime (pruning once removed numpy.testing, which SciPy needs)
+    env = dict(os.environ, QT_QPA_PLATFORM="offscreen", MPLBACKEND="Agg")
+    if subprocess.run([sys.executable, str(HERE / "check_imports.py"), str(app / "runtime")], env=env).returncode:
+        sys.exit("modules are missing from the Windows runtime – see above; no installer was built")
     if not a.no_installer:
         if not shutil.which("makensis"):
             sys.exit("makensis not found: sudo apt install nsis")
