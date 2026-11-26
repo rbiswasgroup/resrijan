@@ -5,7 +5,7 @@ build-backend = "setuptools.build_meta"
 [project]
 name = "resrijan"
 version = "0.6.0"
-description = "Turn published scientific figures (PDF, EPS, SVG, PNG, JPG) back into data and redraw them in journal style"
+description = "Digitise, analyse, fit and redraw scientific figures in journal style: data from published figures (PDF, EPS, SVG, PNG, JPG), peak fitting, deconvolution, curve fitting and journal-style plots"
 readme = "README.md"
 requires-python = ">=3.10"
 license = "AGPL-3.0-or-later"
