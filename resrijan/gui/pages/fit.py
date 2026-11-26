@@ -184,6 +184,7 @@ class FitPage(Page):
             return
         self.data.setText(path)
         self.win.prefs.add_recent(path)
+        self.win.data_opened(path)
         self.out.edit.setPlaceholderText(str(Path(path).with_name(Path(path).stem + "_fit")))
         try:
             from ...plot.engine import read_table

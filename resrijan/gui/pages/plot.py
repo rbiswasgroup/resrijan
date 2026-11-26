@@ -149,6 +149,7 @@ class PlotPage(Page):
             return
         self.data.setText(path)
         self.win.prefs.add_recent(path)
+        self.win.data_opened(path)
         self.out.edit.setPlaceholderText(str(Path(path).with_name(Path(path).stem + "_plot")))
         self.columns = []
         if Path(path).suffix.lower() in (".csv", ".tsv", ".txt", ".dat", ".npz"):

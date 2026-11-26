@@ -218,6 +218,7 @@ class AnalyzePage(Page):
             return
         self.data.setText(path)
         self.win.prefs.add_recent(path)
+        self.win.data_opened(path)
         self.out.edit.setPlaceholderText(str(Path(path).with_name(Path(path).stem + "_analysis")))
         try:
             from ...analysis import load_series

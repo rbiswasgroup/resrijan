@@ -195,7 +195,15 @@ class DigitizePage(Page):
         self.b_edit = QPushButton(icon("edit"), "Edit data…")
         self.b_edit.setToolTip("Correct the points of the selected panel by hand: move, add, delete, split, merge")
         self.b_edit.clicked.connect(self.edit_data)
-        for b in (self.b_edit, self.b_report, self.b_folder):
+        self.b_send = []
+        for key, text, tip in (("plot", "Plot", "Replot this panel's data with your own styling"),
+                               ("analyze", "Analyze", "Baseline, peaks and deconvolution of this panel's data"),
+                               ("fit", "Fit", "Fit a model to this panel's data")):
+            b = QPushButton(text)
+            b.setToolTip(tip + " (the edited data, if you corrected them)")
+            b.clicked.connect(lambda _=False, k=key: self.send_data(k))
+            self.b_send.append(b)
+        for b in (self.b_edit, *self.b_send, self.b_report, self.b_folder):
             b.setEnabled(False)
             top.addWidget(b)
         lay.addLayout(top)
@@ -548,12 +556,23 @@ class DigitizePage(Page):
         data = p.files.get("edited") or p.files.get("data") or p.files.get("contours") or p.files.get("annotations")
         self.data.load(data)
         self.b_edit.setEnabled(bool(p.series) and bool(p.files.get("data")))
+        for b in self.b_send:
+            b.setEnabled(bool(p.series) and bool(p.files.get("data")))
         if p.files.get("replot_edited"):
             self.v_replot.view.set_image(self._best_image(p.files["replot_edited"]))
 
     def current_panel(self):
         it = self.tree.currentItem()
         return None if it is None or not self.result else self.result[0][it.data(0, Qt.UserRole)]
+
+    def send_data(self, key: str):
+        """Open the selected panel's data (edited version first) on the Plot, Analyze or Fit page."""
+        p = self.current_panel()
+        if p is None:
+            return
+        path = p.files.get("edited") or p.files.get("data")
+        if path:
+            self.win.open_in(key, path)
 
     def edit_data(self):
         from ...pipeline import panel_spec

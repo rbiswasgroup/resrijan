@@ -9,6 +9,7 @@
   inspect   FILE      show pages, embedded images and a pixel-ruler image (for manual calibration)
   pick      FILE      click ticks to build --xcal/--ycal strings (needs a display)
   gui                 open the graphical interface (needs: pip install "resrijan[gui]")
+  doctor              check the installation (libraries, OCR, Ghostscript, the GUI)
 
 Each command is split into ``run_*`` (does the work, returns results) and ``cmd_*`` (prints
 them). The GUI builds the same command line, parses it with :func:`build_parser` and calls
@@ -483,6 +484,60 @@ def cmd_gui(a):
     return gui_main([a.file] if a.file else [])
 
 
+# ───────────────────────────── doctor ─────────────────────────────
+def doctor_checks(gui: bool = True):
+    """[(name, ok, detail)] – what ReSrijan needs, and whether it works here."""
+    import importlib
+    import platform
+    import shutil
+    out = [("python", True, f"{platform.python_version()} ({sys.executable})"),
+           ("system", True, platform.platform()), ("resrijan", True, f"{__version__} ({Path(__file__).parent})")]
+    for mod, attr in (("numpy", "__version__"), ("scipy", "__version__"), ("matplotlib", "__version__"),
+                      ("cv2", "__version__"), ("skimage", "__version__"), ("sklearn", "__version__"),
+                      ("fitz", "VersionBind"), ("PIL", "__version__"), ("yaml", "__version__"),
+                      ("pytesseract", "__version__")):
+        try:
+            m = importlib.import_module(mod)
+            out.append((mod, True, str(getattr(m, attr, "ok"))))
+        except Exception as exc:  # noqa: BLE001
+            out.append((mod, False, f"{type(exc).__name__}: {exc}"))
+    try:
+        import pytesseract
+        out.append(("tesseract (OCR)", True, str(pytesseract.get_tesseract_version()).splitlines()[0]))
+    except Exception as exc:  # noqa: BLE001
+        out.append(("tesseract (OCR)", False, f"{exc} – bitmaps without vector text cannot be read"))
+    gs = next((shutil.which(n) for n in ("gs", "gswin64c", "gswin32c") if shutil.which(n)), None)
+    out.append(("ghostscript (EPS/PS)", bool(gs), gs or "not found – EPS and PS input will not work"))
+    rs = shutil.which("rsvg-convert")
+    out.append(("rsvg-convert (SVG clips)", True, rs or "not found – optional (SVGs are read with MuPDF)"))
+    if gui:
+        try:
+            import os
+            os.environ.setdefault("MPLBACKEND", "Agg")
+            from PySide6 import __version__ as pv
+            from PySide6.QtWidgets import QApplication, QLabel
+            from PySide6.QtCore import QTimer
+            app = QApplication.instance() or QApplication([sys.argv[0]])
+            w = QLabel("ReSrijan doctor")
+            w.show()
+            QTimer.singleShot(300, app.quit)
+            app.exec()
+            w.close()
+            out.append(("GUI (PySide6/Qt)", True, f"PySide6 {pv}, platform '{app.platformName()}', window opened"))
+        except Exception as exc:  # noqa: BLE001
+            out.append(("GUI (PySide6/Qt)", False, f"{type(exc).__name__}: {exc}"))
+    return out
+
+
+def cmd_doctor(a):
+    bad = 0
+    for name, ok, detail in doctor_checks(gui=not a.no_gui):
+        bad += not ok
+        print(f"  {'ok  ' if ok else 'FAIL'}  {name:26s} {detail}")
+    print("\nEverything needed works." if not bad else f"\n{bad} problem(s) – see FAIL above.")
+    return 1 if bad else 0
+
+
 # ───────────────────────────── parser ─────────────────────────────
 def build_parser() -> argparse.ArgumentParser:
     ap = argparse.ArgumentParser(prog="resrijan", description="ReSrijan – literature figure digitiser and journal figure engine")
@@ -599,6 +654,10 @@ def build_parser() -> argparse.ArgumentParser:
     k = sub.add_parser("pick", help="click tick marks to build manual calibrations (GUI)")
     k.add_argument("file"); k.add_argument("--page"); k.add_argument("--dpi", type=float, default=600)
     k.set_defaults(fn=cmd_pick)
+
+    dr = sub.add_parser("doctor", help="check the installation (libraries, OCR, Ghostscript, the GUI)")
+    dr.add_argument("--no-gui", action="store_true", help="skip opening a test window")
+    dr.set_defaults(fn=cmd_doctor)
 
     g = sub.add_parser("gui", help="open the graphical interface (pip install \"resrijan[gui]\")")
     g.add_argument("file", nargs="?", help="figure or data file to open")

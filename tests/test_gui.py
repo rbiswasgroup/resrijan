@@ -304,3 +304,29 @@ def test_analyze_page_deconvolution_options(win, tmp_path):
     a = p.argv()
     assert a[a.index("--components") + 1] == "4" and a[a.index("--fit-range") + 1] == "1500:1700"
     assert a[a.index("--center-window") + 1] == "10" and a[a.index("--fwhm-range") + 1] == "0:40"
+
+
+def test_data_file_follows_between_plot_analyze_fit(win, tmp_path):
+    f = tmp_path / "shared.csv"
+    f.write_text("t,a,b\n" + "\n".join(f"{i},{i * i},{-i}" for i in range(20)))
+    win.show_page("plot")
+    win.pages["plot"].auto.setChecked(False)
+    win.pages["plot"].open_path(str(f))
+    for key in ("analyze", "fit", "plot"):
+        win.pages[key].auto.setChecked(False)
+        win.show_page(key)
+        assert win.pages[key].data.text() == str(f)
+    assert [win.pages["fit"].ylist.item(i).text() for i in range(win.pages["fit"].ylist.count())] == ["a", "b"]
+
+
+def test_digitize_results_send_data_to_fit(win, tmp_path):
+    d = win.pages["digitize"]
+    d.open_path(str(EX / "04_scatter_errorbars" / "scatter_err.png"))
+    d.out.setText(str(tmp_path / "dg"))
+    d.formats.set_value("png")
+    d.run()
+    assert all(b.isEnabled() for b in d.b_send)
+    win.pages["fit"].auto.setChecked(False)
+    d.send_data("fit")
+    assert win.stack.currentWidget() is win.pages["fit"]
+    assert win.pages["fit"].data.text().endswith("_data.csv") and win.pages["fit"].ylist.count() == 2

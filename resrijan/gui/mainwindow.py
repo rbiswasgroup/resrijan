@@ -121,12 +121,30 @@ class MainWindow(QMainWindow):
         self.show_page("digitize")
 
     # ───────────────────────── navigation ─────────────────────────
+    DATA_PAGES = ("plot", "analyze", "fit")
+    shared_data = ""
+
     def show_page(self, key: str):
         keys = list(self.pages)
-        self.stack.setCurrentWidget(self.pages[key])
+        page = self.pages[key]
+        # Plot, Analyze and Fit share one data file: the last one opened follows you between them
+        if key in self.DATA_PAGES and self.shared_data and page.data.text() != self.shared_data \
+                and Path(self.shared_data).is_file():
+            page.open_path(self.shared_data)
+        self.stack.setCurrentWidget(page)
         self.nav.button(keys.index(key)).setChecked(True)
 
+    def data_opened(self, path: str):
+        """A data page opened ``path``: the other data pages will use it too."""
+        self.shared_data = path
+
     def open_in(self, key: str, path: str):
+        if key in self.DATA_PAGES and Path(path).is_file():
+            self.shared_data = path          # show_page loads it
+            self.show_page(key)
+            if self.pages[key].data.text() != path:
+                self.pages[key].open_path(path)
+            return
         self.show_page(key)
         self.pages[key].open_path(path)
 

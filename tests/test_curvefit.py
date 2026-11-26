@@ -107,3 +107,16 @@ def test_shoulders_and_deconvolution():
     true = np.array([0.55 * 22, 0.85 * 24, 0.35 * 18])
     assert np.allclose(pct, 100 * true / true.sum(), atol=2.5)
     assert an.fit.x_range[0] >= 1570 and an.fit.x_range[1] <= 1730
+
+
+def test_doctor_and_windows_launcher_log(tmp_path, monkeypatch, capsys):
+    assert main(["doctor", "--no-gui"]) in (0, 1)
+    assert "numpy" in capsys.readouterr().out
+    import resrijan._winlaunch as L
+    import resrijan.gui as G
+    monkeypatch.setenv("LOCALAPPDATA", str(tmp_path))
+    monkeypatch.setattr(G, "main", lambda argv: (_ for _ in ()).throw(ImportError("DLL load failed: test")))
+    monkeypatch.setattr(L, "_message_box", lambda title, text: None)
+    assert L.main([]) == 1
+    log = (tmp_path / "ReSrijan" / "logs" / "gui.log").read_text()
+    assert "DLL load failed: test" in log and "python" in log
