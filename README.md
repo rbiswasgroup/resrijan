@@ -9,7 +9,7 @@
 
 <p align="center">
 <a href="https://github.com/rbiswasgroup/resrijan/actions/workflows/ci.yml"><img src="https://github.com/rbiswasgroup/resrijan/actions/workflows/ci.yml/badge.svg" alt="CI"></a>
-<a href="https://pypi.org/project/resrijan/"><img src="https://img.shields.io/pypi/v/resrijan" alt="PyPI"></a>
+<a href="https://pypi.org/project/resrijan/"><img src="https://img.shields.io/pypi/v/resrijan?label=PyPI&logo=pypi&logoColor=white&cacheSeconds=3600" alt="PyPI version"></a>
 <img src="https://img.shields.io/badge/python-3.10%2B-blue" alt="Python 3.10+">
 <img src="https://img.shields.io/badge/platform-Windows%20%7C%20Linux%20%7C%20macOS-orange" alt="Windows | Linux | macOS">
 <a href="https://github.com/rbiswasgroup/resrijan/blob/main/LICENSE"><img src="https://img.shields.io/badge/License-AGPL_v3-blue.svg" alt="AGPL v3"></a>
@@ -64,13 +64,13 @@ ReSrijan also runs on Windows from Python (`pip install "resrijan[gui]"`), but t
 
 ## Install on Linux (Ubuntu 22.04 / 24.04)
 
-ReSrijan needs three system tools (Tesseract for OCR, Ghostscript for EPS/PS, librsvg for SVG) and Python 3.10 or newer:
+ReSrijan is on PyPI as [`resrijan`](https://pypi.org/project/resrijan/). It needs three system tools (Tesseract for OCR, Ghostscript for EPS/PS, librsvg for SVG) and Python 3.10 or newer:
 
 ```bash
 sudo apt install tesseract-ocr ghostscript librsvg2-bin fonts-liberation
 python3 -m venv ~/resrijan-env && . ~/resrijan-env/bin/activate
-pip install resrijan
-resrijan templates
+pip install "resrijan[gui]"      # or: pip install resrijan  (command line only)
+resrijan doctor
 ```
 
 From source (to run the tutorials and tests):
