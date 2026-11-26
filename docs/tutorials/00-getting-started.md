@@ -24,6 +24,18 @@ pip install .            # or: pip install -e ".[dev]" for development
 
 For real Arial and Times New Roman in exported figures, also run `sudo apt install ttf-mscorefonts-installer`.
 
+## Install on macOS
+
+Not yet tested on a Mac. With [Homebrew](https://brew.sh):
+
+```bash
+brew install tesseract ghostscript librsvg python@3.12
+python3.12 -m venv ~/resrijan-env
+~/resrijan-env/bin/pip install "resrijan[gui]"
+```
+
+Then use `~/resrijan-env/bin/resrijan` for the commands below (or add `~/resrijan-env/bin` to your `PATH`). Details in the [README](../../README.md#install-on-macos).
+
 ## Check the setup
 
 ```bash

@@ -79,7 +79,40 @@ cd resrijan
 ./install.sh          # the apt packages above, then a private venv with ReSrijan installed
 ```
 
-Other Linux distributions work with the same packages. macOS should work with Homebrew equivalents but is untested.
+Other Linux distributions work with the same packages.
+
+## Install on macOS
+
+> **Not yet tested on a Mac.** These steps use only packages that exist for macOS (Intel and Apple Silicon); please report how they work for you.
+
+ReSrijan runs on macOS through Python. Install the three tools it uses (Tesseract for OCR, Ghostscript for EPS/PS, librsvg for SVG) and Python with [Homebrew](https://brew.sh), then ReSrijan in its own environment. Do not use `install.sh` on a Mac: it is written for Ubuntu.
+
+1. Install the tools and Python:
+
+   ```bash
+   brew install tesseract ghostscript librsvg python@3.12
+   ```
+
+2. Create an environment for ReSrijan and install it with the graphical interface:
+
+   ```bash
+   python3.12 -m venv ~/resrijan-env
+   ~/resrijan-env/bin/pip install "resrijan[gui]"
+   ```
+
+3. Check the installation – it should end with "Everything needed works":
+
+   ```bash
+   ~/resrijan-env/bin/resrijan doctor
+   ```
+
+4. Start the graphical interface, or use the command line:
+
+   ```bash
+   ~/resrijan-env/bin/resrijan gui
+   ```
+
+To type just `resrijan`, run `echo 'export PATH="$HOME/resrijan-env/bin:$PATH"' >> ~/.zshrc` once and open a new Terminal window. To update later: `~/resrijan-env/bin/pip install --upgrade "resrijan[gui]"`.
 
 ## Graphical interface
 
