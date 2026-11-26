@@ -28,6 +28,11 @@
 **Projects**
 * File → Save/Open project (`.resrijan`, JSON): every page's state – figure, region, clicked ticks, options, plot look, analysis settings, compose spec. Paths inside the project folder are stored relative to it.
 
+**Windows**
+* **Windows 10/11 installer** (`ReSrijan-0.6.0-Setup.exe`, on the GitHub release; per user, no administrator rights), built on Linux by `tools/windows/build_windows.py` from conda-forge's Windows packages, with Python, Qt, Tesseract, Ghostscript and librsvg inside. Start-menu entries for the GUI, a command prompt with `resrijan`, *troubleshoot* (self-check + GUI with a console) and the log folder; "Open with → ReSrijan"; an uninstaller.
+* The build checks that every module ReSrijan imports is in the bundled runtime (`tools/windows/check_imports.py`).
+* Windows-style quoting in the command shown by the GUI; the window gets its own taskbar icon.
+
 **Other**
 * GUI: Plot, Analyze and Fit share the data file – open it once and it follows you between the pages; the Digitize results send a panel's data (edited, if corrected) to Plot, Analyze or Fit with one click.
 * Windows portability: every file is read and written as UTF-8, external programs (Tesseract, Ghostscript) run without console windows, user templates live in `%APPDATA%\resrijan`, and printing never fails on characters the console code page lacks. `import resrijan` no longer loads the whole pipeline.
@@ -48,8 +53,6 @@
 * Colours: a colour per series in Plot and a title colour in Plot and Digitize (CLI: `plot --colors`, `plot/digitize --label-color`; invalid colours are refused with a clear message).
 * Image figures: bitmaps drawn through a transparency mask (3-D AFM renderings written by Cairo) keep their white background instead of turning black, and are no longer cropped; text placed over an image keeps its size relative to the image.
 * Tutorial 18 (the graphical interface).
-* **Windows 10/11 installer** (`ReSrijan-<version>-Setup.exe`, per user, no administrator rights), built on Linux by `tools/windows/build_windows.py` from conda-forge's Windows packages, with Python, Qt, Tesseract, Ghostscript and librsvg inside. It adds a Start-menu entry, a command prompt with `resrijan`, "Open with → ReSrijan" and an uninstaller.
-* Windows support in the code: UTF-8 for every file read and written; external programs started without console windows; journal templates in `%APPDATA%\resrijan\templates`; Windows-style quoting in the command shown by the GUI.
 
 ## 0.4.0 — 2026-11-24
 

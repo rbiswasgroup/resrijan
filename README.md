@@ -46,9 +46,19 @@ Everything runs locally. No uploads, no web service.
 
 ## Install on Windows 10/11
 
-Download **ReSrijan-<version>-Setup.exe** from the [releases page](https://github.com/rbiswasgroup/resrijan/releases) and run it. Everything is included (Python, the GUI, Tesseract OCR, Ghostscript), and no administrator rights are needed. ReSrijan then appears in the Start menu; **ReSrijan command prompt** gives you the `resrijan` command as well.
+1. Download **ReSrijan-0.6.0-Setup.exe** (185 MB) from the [latest release](https://github.com/rbiswasgroup/resrijan/releases/latest).
+2. Optional – check the download in PowerShell: `Get-FileHash .\ReSrijan-0.6.0-Setup.exe` must print
+   `EFB331FF3934891560D4C78170CED4CA48958314D16F2BBF1BF8AFA10DDCE496`.
+3. Run it. Windows may show "Windows protected your PC", because the installer is not code-signed yet: click **More info → Run anyway**. No administrator rights are needed, and everything is included (Python, the GUI, Tesseract OCR, Ghostscript).
+4. Start **ReSrijan** from the Start menu or the desktop. **ReSrijan command prompt** gives you the `resrijan` command line; right-click a figure → **Open with → ReSrijan** opens it directly.
 
-Windows may show "Windows protected your PC", because the installer is not code-signed yet. Click **More info → Run anyway**.
+**If ReSrijan does not open**, a message box names the problem and the log is in `%LOCALAPPDATA%\ReSrijan\logs\gui.log` (Start menu → **ReSrijan - logs**). Start menu → **ReSrijan - troubleshoot** checks every part of the installation (`resrijan doctor`) and starts the GUI with a console that shows any error. If nothing appears at all, see whether Windows Security blocked the program: **Virus & threat protection → Protection history**, and on Windows 11 **App & browser control → Smart App Control**.
+
+**Slower than on Linux.** Digitising and starting ReSrijan take longer on Windows; see [Limitations](#limitations) for why and for the antivirus exclusion that speeds it up.
+
+Uninstall from **Settings → Apps → ReSrijan**; your journal templates (`%APPDATA%\resrijan\templates`) are kept.
+
+ReSrijan also runs on Windows from Python (`pip install "resrijan[gui]"`), but then Tesseract and Ghostscript must be installed separately – the installer is simpler.
 
 ## Install on Linux (Ubuntu 22.04 / 24.04)
 
@@ -163,6 +173,23 @@ python validation/make_testset.py testset && python validation/run_validation.py
 * **Axis titles.** In bitmaps, titles containing maths are read unreliably by OCR. Set them with `--xlabel` and `--ylabel`. (In vector files they are read exactly, with sub- and superscripts.)
 * **Image figures in bitmaps.** An inset that touches its parent image without a gap cannot be separated from it, and very short drawn arrows (about 15 px or less) are not found.
 * **Scans.** Rotated or warped scans should be straightened first.
+* **No GPU, little parallelism.** No part of ReSrijan uses the graphics card. NumPy/SciPy (OpenBLAS) and OpenCV use several CPU cores inside their own operations, but pages, panels and fits are processed one after another.
+* **Windows is slower than Linux.** On the same files, digitising and start-up take longer on Windows, for these reasons:
+  * Microsoft Defender scans every file the program opens, and the bundled runtime has thousands of them.
+  * The first start compiles about 2,000 Python modules and builds Matplotlib's font list (once per installation).
+  * Windows is slower at starting programs such as Tesseract and Ghostscript, and at reading many small files.
+
+  **Workaround:** exclude ReSrijan from antivirus scanning (optional; only if you trust the download):
+  1. **Windows Security → Virus & threat protection → Manage settings** (under *Virus & threat protection settings*).
+  2. Scroll down to **Exclusions → Add or remove exclusions**.
+  3. Choose **Add an exclusion → Folder** and paste `%LOCALAPPDATA%\Programs\ReSrijan`.
+
+  As administrator in PowerShell: `Add-MpPreference -ExclusionPath "$env:LOCALAPPDATA\Programs\ReSrijan"`. No *Exclusions* option usually means one of these:
+  * another antivirus manages the PC: add the exclusion there instead;
+  * your institution manages Windows Security: ask IT;
+  * you have no administrator rights.
+
+  ReSrijan works without the exclusion, only more slowly.
 
 ## Why "ReSrijan"?
 
@@ -178,7 +205,26 @@ Bug reports with a sample figure are the most useful contribution, together with
 
 ## Citing
 
-If ReSrijan helps your work, please cite it using [CITATION.cff](https://github.com/rbiswasgroup/resrijan/blob/main/CITATION.cff) (GitHub's "Cite this repository" button).
+If ReSrijan helps your work, please cite it. The Linux, macOS and Python version (`pip install resrijan`, `./install.sh`) and the Windows installer are the same program built from the same source, so they share one citation; give the version you used, and the platform if you like.
+
+> Biswas, R. (2026). *ReSrijan: recreating scientific figures – data from published figures, redrawn in journal style* (Version 0.6.0) [Computer software]. Indian Institute of Technology Tirupati. https://github.com/rbiswasgroup/resrijan
+
+```bibtex
+@software{biswas_resrijan_2026,
+  author    = {Biswas, Rajib},
+  title     = {{ReSrijan}: recreating scientific figures -- data from published figures,
+               redrawn in journal style},
+  year      = {2026},
+  version   = {0.6.0},
+  publisher = {Indian Institute of Technology Tirupati},
+  url       = {https://github.com/rbiswasgroup/resrijan},
+  note      = {Linux/macOS: Python package (PyPI: resrijan); Windows 10/11: ReSrijan-0.6.0-Setup.exe}
+}
+```
+
+In a methods section, for example: *"Data were extracted from the published figures with ReSrijan 0.6.0 (Windows 10 installer) [ref]; the extracted points were checked against the original figures in the overlay images it produces."* For the Linux or Python version write *"ReSrijan 0.6.0 (Python package, Ubuntu 24.04)"*.
+
+The same details are in [CITATION.cff](https://github.com/rbiswasgroup/resrijan/blob/main/CITATION.cff) (GitHub's **Cite this repository** button gives APA and BibTeX).
 
 ## Licence
 

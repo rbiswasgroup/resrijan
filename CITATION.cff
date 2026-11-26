@@ -10,6 +10,20 @@ version: 0.6.0
 date-released: 2026-11-25
 license: AGPL-3.0-or-later
 repository-code: "https://github.com/rbiswasgroup/resrijan"
+url: "https://github.com/rbiswasgroup/resrijan"
+abstract: >-
+  ReSrijan extracts numerical data from published scientific figures (PDF, EPS, SVG and bitmaps)
+  and redraws them in journal style; it also plots, analyses (baseline, peak fitting, deconvolution)
+  and fits user data. One code base, distributed as a Python package for Linux and macOS
+  (PyPI: resrijan) and as a self-contained Windows 10/11 installer (ReSrijan-<version>-Setup.exe on
+  the GitHub releases page). Cite the version you used.
+identifiers:
+  - type: url
+    value: "https://pypi.org/project/resrijan/"
+    description: "Python package (Linux, macOS, Windows with Python)"
+  - type: url
+    value: "https://github.com/rbiswasgroup/resrijan/releases"
+    description: "Releases, including the Windows 10/11 installer"
 keywords:
   - plot digitizer
   - data extraction

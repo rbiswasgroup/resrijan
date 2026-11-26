@@ -36,7 +36,14 @@ python -m venv ~/winbuild && ~/winbuild/bin/pip install py-rattler pillow pefile
 ~/winbuild/bin/python tools/windows/build_windows.py      # → build/windows/ReSrijan-<version>-Setup.exe
 ```
 
-The script takes Python, Qt, the scientific libraries, Tesseract, Ghostscript and librsvg from conda-forge's Windows (win-64) builds. It prunes what ReSrijan does not use, makes the runtime relocatable, and wraps it with NSIS (`tools/windows/installer.nsi`). Test the installer on a Windows 10/11 PC before attaching it to the GitHub release; until it is code-signed, Windows SmartScreen warns on first start.
+The script takes Python, Qt, the scientific libraries, Tesseract, Ghostscript and librsvg from conda-forge's Windows (win-64) builds. It prunes what ReSrijan does not use, makes the runtime relocatable, and wraps it with NSIS (`tools/windows/installer.nsi`). Before building the installer it runs `tools/windows/check_imports.py`, which exercises every feature here and stops if any imported module is missing from the Windows runtime (pruning once removed `numpy.testing`, which SciPy needs at start-up).
+
+Then:
+1. Install it on a Windows 10/11 PC, start it from the Start menu, and run **ReSrijan - troubleshoot** (`resrijan doctor` must end with "Everything needed works").
+2. Note the checksum: `sha256sum build/windows/ReSrijan-X.Y.Z-Setup.exe`, and update it in `README.md` (*Install on Windows*).
+3. On the GitHub release `vX.Y.Z`, **attach `ReSrijan-X.Y.Z-Setup.exe`** (release files may be up to 2 GB; no splitting needed) and add its SHA-256 to the release notes.
+
+Until the installer is code-signed, Windows SmartScreen warns on first start.
 
 ## Optional
 

@@ -1,6 +1,10 @@
 # 0 · Installation and first run
 
-## Install (Ubuntu 22.04 / 24.04)
+## Install on Windows 10/11
+
+Download **ReSrijan-0.6.0-Setup.exe** from the [latest release](https://github.com/rbiswasgroup/resrijan/releases/latest) and run it (Windows may warn "Windows protected your PC": **More info → Run anyway**). Everything is included; no administrator rights are needed. Start **ReSrijan** from the Start menu for the graphical interface ([tutorial 18](18-gui.md)), or **ReSrijan command prompt** for the commands used in these tutorials. **ReSrijan - troubleshoot** runs the same check as `resrijan doctor` below. Windows is slower than Linux; see [Limitations](../../README.md#limitations) for an antivirus exclusion that helps.
+
+## Install on Linux (Ubuntu 22.04 / 24.04)
 
 ```bash
 git clone https://github.com/rbiswasgroup/resrijan.git
@@ -24,8 +28,11 @@ For real Arial and Times New Roman in exported figures, also run `sudo apt insta
 
 ```bash
 resrijan --version
+resrijan doctor
 resrijan templates
 ```
+
+`resrijan doctor` checks everything ReSrijan needs (the Python libraries, Tesseract, Ghostscript and a test window) and ends with "Everything needed works" or lists what is missing.
 
 `resrijan templates` lists every journal style and shows which font your system will actually use for it.
 
